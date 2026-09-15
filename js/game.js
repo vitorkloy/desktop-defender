@@ -241,6 +241,11 @@
     effectsManager.reset();
     dropManager.reset();
     abilitiesHandler.reset();
+    
+    // Give starter effects for testing
+    effectsManager.addEffect("emp_blast"); // active ability
+    effectsManager.addEffect("devastation"); // super ability
+    
     document.getElementById("corebar-fill").style.width = "100%";
     document.getElementById("corebar-fill").style.background = "linear-gradient(90deg, var(--core-dim), var(--core))";
   }
