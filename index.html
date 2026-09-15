@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Desktop Defender</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+
+</head>
+<body>
+
+<div id="app">
+  <div id="stage">
+    <canvas id="game"></canvas>
+
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="hud-block">
+          <div class="hud-label">SCORE</div>
+          <div class="hud-value" id="hud-score">000000</div>
+        </div>
+        <div class="hud-block" style="align-items:center;">
+          <div class="hud-label">WAVE</div>
+          <div class="hud-value" id="hud-wave">01</div>
+        </div>
+        <div class="hud-block" style="align-items:flex-end;">
+          <div class="hud-label">COMBO</div>
+          <div class="hud-value combo" id="hud-combo">x1</div>
+        </div>
+      </div>
+
+      <div id="wavebanner">WAVE 1</div>
+
+      <div id="corebar-wrap">
+        <div id="corebar-label">CORE INTEGRITY</div>
+        <div id="corebar-track"><div id="corebar-fill"></div></div>
+      </div>
+
+      <div id="effects-hud"></div>
+
+      <div id="superbar-wrap">
+        <div id="superbar-label">SUPER</div>
+        <div id="superbar-track"><div id="superbar-fill"></div></div>
+      </div>
+
+      <div id="toast-wrap"></div>
+    </div>
+
+    <!-- MENU -->
+    <div id="menu" class="overlay">
+      <h1 class="title">DESKTOP<span> DEFENDER</span></h1>
+      <div class="subtitle">PROTEJA O NÚCLEO A QUALQUER CUSTO</div>
+      <div class="best-line" id="menu-best">RECORDE: 0</div>
+      <div class="ach-stats-line" id="menu-stats"></div>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-play">JOGAR</button>
+        <button class="btn" id="btn-board">RANKING</button>
+        <button class="btn" id="btn-ach">CONQUISTAS</button>
+      </div>
+      <div class="controls-hint">
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover</span>
+        <span>mouse mirar</span>
+        <span>clique atirar</span>
+        <span><kbd>Space</kbd>/<kbd>Q</kbd> ativa</span>
+        <span><kbd>Shift</kbd>/<kbd>E</kbd> super</span>
+        <span><kbd>P</kbd> pausar</span>
+      </div>
+    </div>
+
+    <!-- PAUSE -->
+    <div id="pausepanel" class="overlay hidden">
+      <h1 class="title">PAUSADO</h1>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-resume">CONTINUAR</button>
+        <button class="btn" id="btn-restart-pause">REINICIAR</button>
+        <button class="btn danger" id="btn-quit-pause">MENU</button>
+      </div>
+    </div>
+
+    <!-- GAME OVER -->
+    <div id="gameover" class="overlay hidden">
+      <div class="subtitle" style="color:var(--danger);">NÚCLEO DESTRUÍDO</div>
+      <p id="gameover-score">000000</p>
+      <div id="gameover-wave">ONDA ALCANÇADA: 1</div>
+      <div id="go-stats"></div>
+      <div id="go-unlocked"></div>
+      <div id="newbest-tag" class="newbest hidden">NOVO RECORDE</div>
+
+      <form id="nameform" class="hidden">
+        <input id="nameinput" maxlength="10" placeholder="NOME" autocomplete="off">
+        <button type="submit" class="btn primary" style="min-width:auto; padding:10px 18px;">SALVAR</button>
+      </form>
+
+      <div class="btn-row">
+        <button class="btn primary" id="btn-retry">JOGAR NOVAMENTE</button>
+        <button class="btn" id="btn-quit-go">MENU</button>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div id="leaderboard" class="overlay hidden">
+      <h1 class="title" style="font-size:28px;">RANKING</h1>
+      <div id="board-holder"></div>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-board-back">VOLTAR</button>
+      </div>
+    </div>
+
+    <!-- ACHIEVEMENTS -->
+    <div id="achievements" class="overlay hidden">
+      <h1 class="title">CONQUISTAS</h1>
+      <div class="ach-stats-line" id="ach-stats-line"></div>
+      <div class="ach-grid" id="ach-grid"></div>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-ach-back">VOLTAR</button>
+      </div>
+    </div>
+
+    <div class="footer-credit">DESKTOP DEFENDER</div>
+  </div>
+</div>
+
+<script src="js/effects.js"></script>
+<script src="js/drops.js"></script>
+<script src="js/abilities.js"></script>
+<script src="js/game.js"></script>
+
+</body>
+</html>
