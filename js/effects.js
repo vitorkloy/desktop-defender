@@ -152,6 +152,8 @@
   class EffectsManager {
     constructor() {
       this.activeEffects = []; // { defId, timeLeft, stackCount }
+      this.ownedActiveAbility = null; // loadout slot for active ability
+      this.ownedSuperAbility = null; // loadout slot for super ability
       this.superCharge = 0;
       this.superChargeMax = 100;
       this.activeCooldown = 0;
@@ -159,6 +161,8 @@
 
     reset() {
       this.activeEffects = [];
+      this.ownedActiveAbility = null;
+      this.ownedSuperAbility = null;
       this.superCharge = 0;
       this.activeCooldown = 0;
     }
@@ -167,6 +171,17 @@
       const def = EFFECTS_CATALOG[defId];
       if (!def) return;
 
+      // Abilities go to loadout slots, not temporary effects
+      if (def.type === EFFECT_TYPE.ACTIVE) {
+        this.ownedActiveAbility = defId;
+        return;
+      }
+      if (def.type === EFFECT_TYPE.SUPER) {
+        this.ownedSuperAbility = defId;
+        return;
+      }
+
+      // Temporary effects (buffs/debuffs/passives) have duration
       const existing = this.activeEffects.find(e => e.defId === defId);
       
       if (existing) {
@@ -226,22 +241,18 @@
     }
 
     hasActiveAbility() {
-      return this.activeEffects.some(e => EFFECTS_CATALOG[e.defId]?.type === EFFECT_TYPE.ACTIVE);
+      return this.ownedActiveAbility !== null;
     }
 
     hasSuperAbility() {
-      return this.activeEffects.some(e => EFFECTS_CATALOG[e.defId]?.type === EFFECT_TYPE.SUPER);
+      return this.ownedSuperAbility !== null;
     }
 
     useActive() {
       if (!this.canUseActive()) return null;
       
-      const activeEffect = this.activeEffects.find(e => 
-        EFFECTS_CATALOG[e.defId]?.type === EFFECT_TYPE.ACTIVE
-      );
-      
-      if (activeEffect) {
-        const def = EFFECTS_CATALOG[activeEffect.defId];
+      if (this.ownedActiveAbility) {
+        const def = EFFECTS_CATALOG[this.ownedActiveAbility];
         this.activeCooldown = def.cooldown || 10;
         return def.id;
       }
@@ -252,12 +263,8 @@
     useSuper() {
       if (!this.canUseSuper()) return null;
       
-      const superEffect = this.activeEffects.find(e => 
-        EFFECTS_CATALOG[e.defId]?.type === EFFECT_TYPE.SUPER
-      );
-      
-      if (superEffect) {
-        const def = EFFECTS_CATALOG[superEffect.defId];
+      if (this.ownedSuperAbility) {
+        const def = EFFECTS_CATALOG[this.ownedSuperAbility];
         this.superCharge = 0;
         return def.id;
       }
@@ -306,10 +313,36 @@
     }
 
     getActiveEffects() {
-      return this.activeEffects.map(e => ({
+      const result = [];
+
+      // Add owned abilities (permanent for the run)
+      if (this.ownedActiveAbility) {
+        result.push({
+          defId: this.ownedActiveAbility,
+          timeLeft: Infinity,
+          stackCount: 1,
+          def: EFFECTS_CATALOG[this.ownedActiveAbility],
+          cooldownRemaining: this.activeCooldown
+        });
+      }
+
+      if (this.ownedSuperAbility) {
+        result.push({
+          defId: this.ownedSuperAbility,
+          timeLeft: Infinity,
+          stackCount: 1,
+          def: EFFECTS_CATALOG[this.ownedSuperAbility],
+          chargePercent: this.getSuperChargePercent()
+        });
+      }
+
+      // Add temporary effects
+      result.push(...this.activeEffects.map(e => ({
         ...e,
         def: EFFECTS_CATALOG[e.defId]
-      }));
+      })));
+
+      return result;
     }
 
     getSuperChargePercent() {
