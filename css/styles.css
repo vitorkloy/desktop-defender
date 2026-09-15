@@ -96,6 +96,68 @@
   }
   #wavebanner.show{ opacity:1; transform:translate(-50%,-50%) scale(1); }
 
+  /* ---------- Effects HUD ---------- */
+  #effects-hud{
+    position:absolute; top:70px; left:18px;
+    display:flex; flex-direction:column; gap:6px;
+    max-width:180px;
+  }
+  .effect-badge{
+    display:flex; align-items:center; gap:8px;
+    background:rgba(12,21,38,0.85); border:1px solid var(--panel-border);
+    border-radius:4px; padding:6px 10px;
+    font-size:10px; letter-spacing:0.5px;
+  }
+  .effect-badge.buff{ border-color:#57d9ff; }
+  .effect-badge.debuff{ border-color:#ff4d6d; }
+  .effect-badge.passive{ border-color:#9fb0c8; }
+  .effect-badge.active{ border-color:#2bffd0; }
+  .effect-badge.super{ border-color:#ff9d47; }
+  .effect-icon{
+    width:20px; height:20px; border-radius:3px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Orbitron',sans-serif; font-weight:700; font-size:8px;
+    border:1.5px solid;
+    flex-shrink:0;
+  }
+  .effect-badge.buff .effect-icon{ border-color:#57d9ff; color:#57d9ff; background:rgba(87,217,255,0.1); }
+  .effect-badge.debuff .effect-icon{ border-color:#ff4d6d; color:#ff4d6d; background:rgba(255,77,109,0.1); }
+  .effect-badge.passive .effect-icon{ border-color:#9fb0c8; color:#9fb0c8; background:rgba(159,176,200,0.1); }
+  .effect-badge.active .effect-icon{ border-color:#2bffd0; color:#2bffd0; background:rgba(43,255,208,0.1); }
+  .effect-badge.super .effect-icon{ border-color:#ff9d47; color:#ff9d47; background:rgba(255,157,71,0.1); }
+  .effect-info{
+    display:flex; flex-direction:column; gap:1px; flex:1; min-width:0;
+  }
+  .effect-name{
+    font-weight:700; color:var(--text-hi); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .effect-timer{
+    color:var(--text-dim); font-size:9px;
+  }
+
+  /* ---------- Super bar ---------- */
+  #superbar-wrap{
+    position:absolute; bottom:46px; left:50%; transform:translateX(-50%);
+    width:28%;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+  }
+  #superbar-label{ font-size:9px; letter-spacing:2px; color:var(--text-dim); }
+  #superbar-track{
+    width:100%; height:8px; border-radius:4px;
+    background:#0a1220; border:1px solid var(--panel-border);
+    overflow:hidden;
+  }
+  #superbar-fill{
+    height:100%; width:0%;
+    background:linear-gradient(90deg, #b35f20, var(--amber));
+    transition:width .2s ease-out;
+  }
+  #superbar-fill.charged{
+    background:linear-gradient(90deg, var(--amber), #ffdb73);
+    animation:super-pulse 0.8s infinite;
+  }
+  @keyframes super-pulse{ 0%,100%{opacity:1;} 50%{opacity:0.7;} }
+
   /* ---------- Overlays ---------- */
   .overlay{
     position:absolute; inset:0;

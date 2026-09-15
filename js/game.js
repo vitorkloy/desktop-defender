@@ -170,10 +170,36 @@
   /* ============ INPUT ============ */
   const keys = {};
   window.addEventListener("keydown",(e)=>{
-    keys[e.key.toLowerCase()] = true;
-    if(e.key.toLowerCase()==="p" || e.key==="Escape"){
+    const key = e.key.toLowerCase();
+    keys[key] = true;
+    
+    if(key==="p" || e.key==="Escape"){
       if(state==="playing"){ pauseGame(); }
       else if(state==="paused"){ resumeGame(); }
+    }
+    
+    // Active ability (Space or Q)
+    if(state==="playing" && (key===" " || key==="q")){
+      const activated = effectsManager.useActive();
+      if(activated === "emp_blast"){
+        abilitiesHandler.triggerEMP(player.x, player.y);
+        sfx.wave();
+      }
+    }
+    
+    // Super ability (Shift or E) - when super is charged
+    if(state==="playing" && (e.key==="Shift" || key==="e")){
+      const activated = effectsManager.useSuper();
+      if(activated === "devastation"){
+        const result = abilitiesHandler.triggerDevastating(enemies, particles, score, combo);
+        score += result.totalScore;
+        sessionKills += result.kills;
+        effectsManager.addSuperCharge(10); // small bonus for using super
+        floatText(core.x, core.y - 50, "DEVASTAÇÃO!", "#ff9d47");
+        shake = Math.max(shake, 15);
+        sfx.gameover(); // big sound
+        checkLiveAchievements();
+      }
     }
   });
   window.addEventListener("keyup",(e)=>{ keys[e.key.toLowerCase()] = false; });
@@ -190,13 +216,18 @@
   /* ============ GAME STATE ============ */
   let state = "menu"; // menu | playing | paused | gameover | leaderboard
   const core = { x:W/2, y:H/2, radius:34, hp:100, maxHp:100 };
-  const player = { x:W/2, y:H/2+150, radius:13, angle:-Math.PI/2, speed:230 };
+  const player = { x:W/2, y:H/2+150, radius:13, angle:-Math.PI/2, speed:230, baseSpeed:230 };
   let bullets = [], enemies = [], particles = [], floaters = [];
   let score = 0, wave = 1, combo = 1, comboTimer = 0, spawnTimer = 0.6, waveAnnounceTimer = 0, shake = 0, fireCooldown = 0, elapsed = 0, bestScore = 0;
 
   // sessão atual (para conquistas/estatísticas)
   let sessionShots = 0, sessionHits = 0, sessionKills = 0, sessionTankKills = 0;
   let bestComboThisRun = 1, tookDamageThisWave = false, killTimestamps = [];
+
+  // Effects & abilities systems
+  const effectsManager = new window.EffectsManager();
+  const dropManager = new window.DropManager();
+  const abilitiesHandler = new window.AbilitiesHandler();
 
   function resetGame(){
     bullets = []; enemies = []; particles = []; floaters = [];
@@ -207,6 +238,9 @@
     sessionShots = 0; sessionHits = 0; sessionKills = 0; sessionTankKills = 0;
     bestComboThisRun = 1; tookDamageThisWave = false; killTimestamps = [];
     newlyUnlocked = [];
+    effectsManager.reset();
+    dropManager.reset();
+    abilitiesHandler.reset();
     document.getElementById("corebar-fill").style.width = "100%";
     document.getElementById("corebar-fill").style.background = "linear-gradient(90deg, var(--core-dim), var(--core))";
   }
@@ -271,6 +305,11 @@
 
   /* ============ UPDATE ============ */
   function updatePlayer(dt){
+    const mods = effectsManager.computeMods();
+    
+    // Apply movement speed mod
+    const effectiveSpeed = player.baseSpeed * mods.moveSpeed;
+    
     let dx=0, dy=0;
     if(keys["w"]||keys["arrowup"]) dy -= 1;
     if(keys["s"]||keys["arrowdown"]) dy += 1;
@@ -279,24 +318,40 @@
     if(dx||dy){
       const len = Math.hypot(dx,dy);
       dx/=len; dy/=len;
-      player.x = clamp(player.x + dx*player.speed*dt, player.radius+4, W-player.radius-4);
-      player.y = clamp(player.y + dy*player.speed*dt, player.radius+4, H-player.radius-4);
+      player.x = clamp(player.x + dx*effectiveSpeed*dt, player.radius+4, W-player.radius-4);
+      player.y = clamp(player.y + dy*effectiveSpeed*dt, player.radius+4, H-player.radius-4);
     }
     player.angle = Math.atan2(mouse.y-player.y, mouse.x-player.x);
 
+    // Apply fire rate mod
+    const baseCooldown = 0.14;
+    const effectiveCooldown = baseCooldown / mods.fireRate;
+    
     fireCooldown -= dt;
     if(mouse.down && fireCooldown<=0){
-      fireCooldown = 0.14;
+      fireCooldown = effectiveCooldown;
       const spread = rand(-0.03,0.03);
       const a = player.angle+spread;
       bullets.push({
         x: player.x+Math.cos(a)*player.radius*1.4,
         y: player.y+Math.sin(a)*player.radius*1.4,
-        vx: Math.cos(a)*640, vy: Math.sin(a)*640, life:1.1
+        vx: Math.cos(a)*640, vy: Math.sin(a)*640, life:1.1,
+        damage: mods.bulletDamage
       });
       sessionShots += 1;
       sfx.shoot();
       shake = Math.max(shake, 1.5);
+    }
+
+    // Check for drop pickups
+    const pickedEffect = dropManager.checkPickup(player.x, player.y, player.radius);
+    if (pickedEffect) {
+      effectsManager.addEffect(pickedEffect);
+      const def = window.EFFECTS_CATALOG[pickedEffect];
+      if (def) {
+        floatText(player.x, player.y - 20, def.name, def.color);
+        sfx.wave();
+      }
     }
   }
 
@@ -309,16 +364,23 @@
   }
 
   function updateEnemies(dt){
+    const mods = effectsManager.computeMods();
+    
     for(let i=enemies.length-1;i>=0;i--){
       const e = enemies[i];
       e.wobble += dt*4;
+      
+      // Apply EMP slow effect
+      const enemySpeed = e.empSlowed ? e.speed * 0.3 : e.speed;
+      
       const ang = Math.atan2(core.y-e.y, core.x-e.x);
-      e.x += Math.cos(ang)*e.speed*dt;
-      e.y += Math.sin(ang)*e.speed*dt;
+      e.x += Math.cos(ang)*enemySpeed*dt;
+      e.y += Math.sin(ang)*enemySpeed*dt;
 
       if(dist(e.x,e.y,core.x,core.y) < core.radius+e.radius*0.6){
-        const dmg = e.type==="tank" ? 22 : (e.type==="fast" ? 6 : 10);
-        core.hp = clamp(core.hp - dmg, 0, core.maxHp);
+        const baseDmg = e.type==="tank" ? 22 : (e.type==="fast" ? 6 : 10);
+        const finalDmg = baseDmg * mods.coreDamageReduction;
+        core.hp = clamp(core.hp - finalDmg, 0, core.maxHp);
         spawnParticles(e.x,e.y,e.color,26,220);
         shake = Math.max(shake, 8);
         combo = 1; comboTimer = 0;
@@ -335,7 +397,8 @@
         if(dist(b.x,b.y,e.x,e.y) < e.radius){
           bullets.splice(j,1);
           sessionHits += 1;
-          e.hp -= 1;
+          const bulletDmg = b.damage || 1;
+          e.hp -= bulletDmg;
           spawnParticles(b.x,b.y,e.color,4,90);
           if(e.hp<=0){
             comboTimer = 2.2;
@@ -347,6 +410,13 @@
             spawnParticles(e.x,e.y,e.color,22,190);
             shake = Math.max(shake, 4);
             sfx.kill();
+            
+            // Try to spawn drop
+            dropManager.trySpawnDrop(e.x, e.y, mods.dropChance);
+            
+            // Add super charge
+            effectsManager.addSuperCharge(5);
+            
             enemies.splice(i,1);
 
             sessionKills += 1;
@@ -398,6 +468,8 @@
         score += bonus;
         floatText(core.x, core.y-core.radius-16, "ONDA PERFEITA +"+bonus, "#2bffd0");
         unlockAchievement("perfect_wave");
+        // Bonus super charge for perfect wave
+        effectsManager.addSuperCharge(15);
       }
       tookDamageThisWave = false;
 
@@ -441,6 +513,39 @@
     document.getElementById("hud-score").textContent = String(score).padStart(6,"0");
     document.getElementById("hud-wave").textContent = String(wave).padStart(2,"0");
     document.getElementById("hud-combo").textContent = "x"+combo;
+    
+    // Update effects HUD
+    const effectsHud = document.getElementById("effects-hud");
+    const activeEffects = effectsManager.getActiveEffects();
+    
+    effectsHud.innerHTML = activeEffects.map(effect => {
+      const timeDisplay = effect.def.duration === Infinity 
+        ? '∞' 
+        : Math.ceil(effect.timeLeft) + 's';
+      
+      const stackDisplay = (effect.stackCount && effect.stackCount > 1) 
+        ? ` x${effect.stackCount}` 
+        : '';
+      
+      return `<div class="effect-badge ${effect.def.type}">
+        <div class="effect-icon">${effect.def.icon}</div>
+        <div class="effect-info">
+          <div class="effect-name">${effect.def.name}${stackDisplay}</div>
+          <div class="effect-timer">${timeDisplay}</div>
+        </div>
+      </div>`;
+    }).join('');
+    
+    // Update super bar
+    const superPct = effectsManager.getSuperChargePercent();
+    const superFill = document.getElementById("superbar-fill");
+    superFill.style.width = superPct + "%";
+    
+    if(superPct >= 100){
+      superFill.classList.add("charged");
+    } else {
+      superFill.classList.remove("charged");
+    }
   }
 
   /* ============ RENDER ============ */
@@ -575,6 +680,13 @@
     ctx.fill(); ctx.stroke();
     ctx.restore();
 
+    // drops
+    ctx.shadowBlur = 0;
+    dropManager.render(ctx);
+
+    // abilities (EMP wave)
+    abilitiesHandler.render(ctx);
+
     // floating score text
     ctx.textAlign = "center";
     ctx.font = "700 13px 'Chakra Petch'";
@@ -601,6 +713,9 @@
       updateEnemies(dt);
       updateParticles(dt);
       updateSpawns(dt);
+      effectsManager.update(dt);
+      dropManager.update(dt);
+      abilitiesHandler.update(dt, enemies);
       comboTimer -= dt;
       if(comboTimer<=0) combo = 1;
       if(waveAnnounceTimer>0){
