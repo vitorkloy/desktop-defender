@@ -524,9 +524,23 @@
     const activeEffects = effectsManager.getActiveEffects();
     
     effectsHud.innerHTML = activeEffects.map(effect => {
-      const timeDisplay = effect.def.duration === Infinity 
-        ? '∞' 
-        : Math.ceil(effect.timeLeft) + 's';
+      let timeDisplay;
+      
+      if (effect.def.type === 'active') {
+        // Show cooldown for active ability
+        if (effect.cooldownRemaining > 0) {
+          timeDisplay = Math.ceil(effect.cooldownRemaining) + 's CD';
+        } else {
+          timeDisplay = 'PRONTO';
+        }
+      } else if (effect.def.type === 'super') {
+        // Show charge for super ability
+        timeDisplay = Math.floor(effect.chargePercent) + '%';
+      } else if (effect.def.duration === Infinity) {
+        timeDisplay = '∞';
+      } else {
+        timeDisplay = Math.ceil(effect.timeLeft) + 's';
+      }
       
       const stackDisplay = (effect.stackCount && effect.stackCount > 1) 
         ? ` x${effect.stackCount}` 
@@ -545,6 +559,9 @@
     const superPct = effectsManager.getSuperChargePercent();
     const superFill = document.getElementById("superbar-fill");
     superFill.style.width = superPct + "%";
+    
+    const superPercent = document.getElementById("superbar-percent");
+    superPercent.textContent = Math.floor(superPct) + "%";
     
     if(superPct >= 100){
       superFill.classList.add("charged");
