@@ -8,7 +8,8 @@
     debuff: 10,
     passive: 20,
     active: 15,
-    super: 5
+    super: 5,
+    firemode: 25
   };
 
   class DropManager {
@@ -27,12 +28,12 @@
       
       if (Math.random() > effectiveChance) return;
 
-      const effectId = this.pickRandomEffect();
-      if (effectId) {
+      const drop = this.pickRandomEffect();
+      if (drop) {
         this.drops.push({
           x,
           y,
-          effectId,
+          drop,
           age: 0,
           radius: 12,
           wobble: Math.random() * Math.PI * 2
@@ -44,10 +45,22 @@
       // Build weighted pool
       const pool = [];
       
+      // Add effects from catalog
       for (const [id, def] of Object.entries(window.EFFECTS_CATALOG)) {
         const weight = DROP_WEIGHTS[def.type] || 10;
         for (let i = 0; i < weight; i++) {
-          pool.push(id);
+          pool.push({type: 'effect', id});
+        }
+      }
+      
+      // Add fire modes (if available)
+      if(window.FIRE_MODES){
+        for(const [id, mode] of Object.entries(window.FIRE_MODES)){
+          if(id === 'standard') continue; // Don't drop standard
+          const weight = DROP_WEIGHTS.firemode || 25;
+          for(let i = 0; i < weight; i++){
+            pool.push({type: 'firemode', id});
+          }
         }
       }
 
@@ -69,9 +82,9 @@
         const dist = Math.hypot(drop.x - playerX, drop.y - playerY);
         
         if (dist < drop.radius + playerRadius) {
-          const effectId = drop.effectId;
+          const pickedDrop = drop.drop;
           this.drops.splice(i, 1);
-          return effectId;
+          return pickedDrop;
         }
       }
       return null;
@@ -79,8 +92,22 @@
 
     render(ctx) {
       for (const drop of this.drops) {
-        const def = window.EFFECTS_CATALOG[drop.effectId];
-        if (!def) continue;
+        const dropData = drop.drop;
+        let def, color, icon;
+        
+        if(dropData.type === 'effect'){
+          def = window.EFFECTS_CATALOG[dropData.id];
+          if (!def) continue;
+          color = def.color;
+          icon = def.icon;
+        } else if(dropData.type === 'firemode'){
+          const mode = window.FIRE_MODES[dropData.id];
+          if (!mode) continue;
+          color = mode.color;
+          icon = mode.name.substring(0, 2);
+        } else {
+          continue;
+        }
 
         const wobbleY = Math.sin(drop.wobble) * 3;
         const pulse = 1 + Math.sin(drop.age * 6) * 0.1;
@@ -90,7 +117,7 @@
 
         // glow
         const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, drop.radius * 2.5);
-        glow.addColorStop(0, def.color + 'aa');
+        glow.addColorStop(0, color + 'aa');
         glow.addColorStop(1, 'transparent');
         ctx.fillStyle = glow;
         ctx.beginPath();
@@ -98,10 +125,10 @@
         ctx.fill();
 
         // hexagon shape
-        ctx.strokeStyle = def.color;
+        ctx.strokeStyle = color;
         ctx.fillStyle = 'rgba(6,10,18,0.8)';
         ctx.lineWidth = 2;
-        ctx.shadowColor = def.color;
+        ctx.shadowColor = color;
         ctx.shadowBlur = 12;
         
         ctx.beginPath();
@@ -119,11 +146,11 @@
 
         // icon
         ctx.shadowBlur = 0;
-        ctx.fillStyle = def.color;
+        ctx.fillStyle = color;
         ctx.font = "700 8px 'Chakra Petch'";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(def.icon, 0, 0);
+        ctx.fillText(icon, 0, 0);
 
         ctx.restore();
       }
