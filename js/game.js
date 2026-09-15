@@ -37,6 +37,17 @@
     catch(e){ console.error("storage save failed", e); }
   }
 
+  /* ============ MANAGERS INITIALIZATION ============ */
+  const metaManager = new window.MetaManager();
+  const economyManager = new window.EconomyManager();
+  const runSaveManager = new window.RunSaveManager();
+  const fireModeManager = new window.FireModeManager();
+  const botManager = new window.BotManager();
+  
+  // Make managers accessible globally for meta UI
+  window.metaManager = metaManager;
+  window.economyManager = economyManager;
+
   /* ============ ACHIEVEMENTS DEFINITIONS ============ */
   const ACHIEVEMENTS = [
     { id:"first_blood", tier:"bronze", icon:"01", name:"PRIMEIRO CONTATO", desc:"Destrua seu primeiro inimigo." },
@@ -178,6 +189,22 @@
       else if(state==="paused"){ resumeGame(); }
     }
     
+    // Fire mode switching (1-3)
+    if(state==="playing"){
+      if(key==="1") fireModeManager.switchMode("standard");
+      if(key==="2") fireModeManager.switchMode("spread");
+      if(key==="3") fireModeManager.switchMode("rail");
+      if(key==="4") fireModeManager.switchMode("burst");
+      
+      // Bot placement
+      if(key==="b"){
+        state = "botmenu";
+        showOnly("botmenu");
+        renderBotMenu();
+        sfx.ui();
+      }
+    }
+    
     // Active ability (Space or Q)
     if(state==="playing" && (key===" " || key==="q")){
       const activated = effectsManager.useActive();
@@ -208,13 +235,35 @@
   canvas.addEventListener("mousemove",(e)=>{
     const p = toLogical(e.clientX, e.clientY);
     mouse.x = p.x; mouse.y = p.y;
+    
+    // Update bot placement ghost
+    if(botManager.placementMode){
+      botManager.updateGhostPosition(p.x, p.y);
+    }
   });
-  canvas.addEventListener("mousedown",(e)=>{ mouse.down = true; });
+  canvas.addEventListener("mousedown",(e)=>{ 
+    mouse.down = true;
+    
+    // Handle bot placement
+    if(botManager.placementMode){
+      const totals = economyManager.getRunTotals();
+      const result = botManager.placeBot(mouse.x, mouse.y, core.x, core.y, core.radius, {w:W, h:H}, totals.gold);
+      
+      if(result.success){
+        economyManager.runGold -= result.cost;
+        sfx.wave();
+        floatText(mouse.x, mouse.y - 20, "-" + result.cost + " 💰", "#ffd23f");
+      } else {
+        floatText(mouse.x, mouse.y - 20, result.reason, "#ff4d6d");
+        sfx.ui();
+      }
+    }
+  });
   window.addEventListener("mouseup",(e)=>{ mouse.down = false; });
   canvas.addEventListener("contextmenu",(e)=>e.preventDefault());
 
   /* ============ GAME STATE ============ */
-  let state = "menu"; // menu | playing | paused | gameover | leaderboard
+  let state = "menu"; // menu | playing | paused | gameover | leaderboard | wavecomplete | botmenu
   const core = { x:W/2, y:H/2, radius:34, hp:100, maxHp:100 };
   const player = { x:W/2, y:H/2+150, radius:13, angle:-Math.PI/2, speed:230, baseSpeed:230 };
   let bullets = [], enemies = [], particles = [], floaters = [];
@@ -223,24 +272,47 @@
   // sessão atual (para conquistas/estatísticas)
   let sessionShots = 0, sessionHits = 0, sessionKills = 0, sessionTankKills = 0;
   let bestComboThisRun = 1, tookDamageThisWave = false, killTimestamps = [];
+  
+  // Meta base stats (loaded on game start)
+  let metaBaseStats = {
+    bulletDamage: 1.0,
+    fireRate: 1.0,
+    coreMaxHp: 100
+  };
 
   // Effects & abilities systems
   const effectsManager = new window.EffectsManager();
   const dropManager = new window.DropManager();
   const abilitiesHandler = new window.AbilitiesHandler();
 
-  function resetGame(){
+  async function resetGame(){
     bullets = []; enemies = []; particles = []; floaters = [];
     score = 0; wave = 1; combo = 1; comboTimer = 0;
     spawnTimer = 0.6; waveAnnounceTimer = 0; shake = 0; fireCooldown = 0; elapsed = 0;
+    
+    // Load meta and apply to base stats
+    const meta = await metaManager.loadMeta();
+    metaBaseStats = {
+      bulletDamage: 1.0,
+      fireRate: 1.0,
+      coreMaxHp: 100
+    };
+    metaBaseStats = metaManager.applyMetaToBaseStats(meta, metaBaseStats);
+    
+    core.maxHp = metaBaseStats.coreMaxHp;
     core.hp = core.maxHp;
+    
     player.x = W/2; player.y = H/2+150;
     sessionShots = 0; sessionHits = 0; sessionKills = 0; sessionTankKills = 0;
     bestComboThisRun = 1; tookDamageThisWave = false; killTimestamps = [];
     newlyUnlocked = [];
+    
     effectsManager.reset();
     dropManager.reset();
     abilitiesHandler.reset();
+    economyManager.reset();
+    fireModeManager.reset();
+    botManager.reset();
     
     // Give starter effects for testing
     effectsManager.addEffect("emp_blast"); // active ability
@@ -328,36 +400,87 @@
     }
     player.angle = Math.atan2(mouse.y-player.y, mouse.x-player.x);
 
-    // Apply fire rate mod
+    // Apply fire rate mod from effects AND meta
     const baseCooldown = 0.14;
-    const effectiveCooldown = baseCooldown / mods.fireRate;
+    const effectiveCooldown = fireModeManager.getFireCooldown(baseCooldown / (mods.fireRate * metaBaseStats.fireRate));
     
     fireCooldown -= dt;
-    if(mouse.down && fireCooldown<=0){
-      fireCooldown = effectiveCooldown;
-      const spread = rand(-0.03,0.03);
-      const a = player.angle+spread;
+    
+    // Check burst state
+    const fireMode = fireModeManager.getCurrentMode();
+    if(fireMode.behavior === "burst"){
+      // Handle burst firing
+      if(mouse.down && fireCooldown<=0 && !fireModeManager.burstState){
+        fireModeManager.startFire();
+      }
+      
+      if(fireModeManager.canFire() && fireCooldown<=0){
+        fireCooldown = effectiveCooldown;
+        fireBullets(fireMode, mods);
+        fireModeManager.onShotFired();
+      }
+    } else {
+      // Normal firing
+      if(mouse.down && fireCooldown<=0){
+        fireCooldown = effectiveCooldown;
+        fireBullets(fireMode, mods);
+      }
+    }
+
+    // Check for drop pickups
+    const pickedDrop = dropManager.checkPickup(player.x, player.y, player.radius);
+    if (pickedDrop) {
+      if(pickedDrop.type === 'effect'){
+        effectsManager.addEffect(pickedDrop.id);
+        const def = window.EFFECTS_CATALOG[pickedDrop.id];
+        if (def) {
+          floatText(player.x, player.y - 20, def.name, def.color);
+          sfx.wave();
+        }
+      } else if(pickedDrop.type === 'firemode'){
+        fireModeManager.unlockMode(pickedDrop.id);
+        const mode = window.FIRE_MODES[pickedDrop.id];
+        if(mode){
+          floatText(player.x, player.y - 20, mode.name, mode.color);
+          sfx.wave();
+        }
+      }
+    }
+  }
+  
+  function fireBullets(fireMode, mods){
+    const baseDamage = metaBaseStats.bulletDamage * mods.bulletDamage * fireMode.damageMod;
+    
+    if(fireMode.behavior === "spread" || fireMode.behavior === "burst"){
+      // Multiple projectiles
+      for(let i=0; i<fireMode.projectileCount; i++){
+        const spreadOffset = (i - (fireMode.projectileCount-1)/2) * fireMode.spreadAngle;
+        const a = player.angle + spreadOffset;
+        bullets.push({
+          x: player.x+Math.cos(a)*player.radius*1.4,
+          y: player.y+Math.sin(a)*player.radius*1.4,
+          vx: Math.cos(a)*640, vy: Math.sin(a)*640, life:1.1,
+          damage: baseDamage,
+          pierce: fireMode.pierce,
+          color: fireMode.color
+        });
+      }
+    } else {
+      // Single projectile
+      const a = player.angle + rand(-0.03,0.03);
       bullets.push({
         x: player.x+Math.cos(a)*player.radius*1.4,
         y: player.y+Math.sin(a)*player.radius*1.4,
         vx: Math.cos(a)*640, vy: Math.sin(a)*640, life:1.1,
-        damage: mods.bulletDamage
+        damage: baseDamage,
+        pierce: fireMode.pierce,
+        color: fireMode.color
       });
-      sessionShots += 1;
-      sfx.shoot();
-      shake = Math.max(shake, 1.5);
     }
-
-    // Check for drop pickups
-    const pickedEffect = dropManager.checkPickup(player.x, player.y, player.radius);
-    if (pickedEffect) {
-      effectsManager.addEffect(pickedEffect);
-      const def = window.EFFECTS_CATALOG[pickedEffect];
-      if (def) {
-        floatText(player.x, player.y - 20, def.name, def.color);
-        sfx.wave();
-      }
-    }
+    
+    sessionShots += 1;
+    sfx.shoot();
+    shake = Math.max(shake, 1.5);
   }
 
   function updateBullets(dt){
@@ -384,7 +507,11 @@
 
       if(dist(e.x,e.y,core.x,core.y) < core.radius+e.radius*0.6){
         const baseDmg = e.type==="tank" ? 22 : (e.type==="fast" ? 6 : 10);
-        const finalDmg = baseDmg * mods.coreDamageReduction;
+        
+        // Apply ward protection
+        const wardProtection = botManager.getWardProtection(core.x, core.y);
+        const finalDmg = baseDmg * mods.coreDamageReduction * wardProtection;
+        
         core.hp = clamp(core.hp - finalDmg, 0, core.maxHp);
         spawnParticles(e.x,e.y,e.color,26,220);
         shake = Math.max(shake, 8);
@@ -400,7 +527,14 @@
       for(let j=bullets.length-1;j>=0;j--){
         const b = bullets[j];
         if(dist(b.x,b.y,e.x,e.y) < e.radius){
-          bullets.splice(j,1);
+          // Pierce mechanic
+          if(!b.pierce){
+            bullets.splice(j,1);
+          } else {
+            b.pierceHits = (b.pierceHits || 0) + 1;
+            if(b.pierceHits >= 3) bullets.splice(j,1);
+          }
+          
           sessionHits += 1;
           const bulletDmg = b.damage || 1;
           e.hp -= bulletDmg;
@@ -415,6 +549,9 @@
             spawnParticles(e.x,e.y,e.color,22,190);
             shake = Math.max(shake, 4);
             sfx.kill();
+            
+            // Economy: award kill
+            economyManager.awardKill(e.type);
             
             // Try to spawn drop
             dropManager.trySpawnDrop(e.x, e.y, mods.dropChance);
@@ -468,6 +605,9 @@
     if(score - lastWaveScoreThreshold >= threshold){
       lastWaveScoreThreshold = score;
 
+      // Award wave completion
+      economyManager.awardWaveComplete(wave, !tookDamageThisWave);
+
       if(!tookDamageThisWave){
         const bonus = 100 + wave*20;
         score += bonus;
@@ -479,7 +619,13 @@
       tookDamageThisWave = false;
 
       wave += 1;
-      announceWave();
+      
+      // Check for checkpoint opportunity
+      if(runSaveManager.canSaveAtWave(wave)){
+        showWaveComplete();
+      } else {
+        announceWave();
+      }
 
       if(wave>=5) unlockAchievement("wave_5");
       if(wave>=10) unlockAchievement("wave_10");
@@ -518,6 +664,27 @@
     document.getElementById("hud-score").textContent = String(score).padStart(6,"0");
     document.getElementById("hud-wave").textContent = String(wave).padStart(2,"0");
     document.getElementById("hud-combo").textContent = "x"+combo;
+    
+    // Update economy display
+    const totals = economyManager.getRunTotals();
+    document.getElementById("run-gold").textContent = totals.gold;
+    document.getElementById("run-xp").textContent = totals.xp;
+    
+    // Update fire modes HUD
+    const modes = fireModeManager.getUnlockedModes();
+    const fireModesHud = document.getElementById("firemodes-hud");
+    fireModesHud.innerHTML = modes.map((mode, idx) => {
+      const keyMap = {standard:"1", spread:"2", rail:"3", burst:"4"};
+      const key = keyMap[mode.id] || "";
+      const timeDisplay = mode.timeLeft === Infinity ? "∞" : Math.ceil(mode.timeLeft) + "s";
+      const locked = mode.timeLeft === 0 && mode.id !== "standard";
+      
+      return `<div class="firemode-badge ${mode.active ? "active" : ""} ${locked ? "locked" : ""}">
+        <div class="firemode-name">${mode.name}</div>
+        <div class="firemode-key">${key}</div>
+        ${mode.id !== "standard" ? `<div class="firemode-time">${timeDisplay}</div>` : ""}
+      </div>`;
+    }).join('');
     
     // Update effects HUD
     const effectsHud = document.getElementById("effects-hud");
@@ -677,10 +844,16 @@
 
     // bullets
     ctx.shadowBlur = 8;
-    ctx.shadowColor = "#57d9ff";
-    ctx.fillStyle = "#eaf6ff";
     for(const b of bullets){
-      ctx.beginPath(); ctx.arc(b.x,b.y,3,0,Math.PI*2); ctx.fill();
+      ctx.shadowColor = b.color || "#57d9ff";
+      ctx.fillStyle = b.color || "#eaf6ff";
+      if(b.pierce){
+        ctx.shadowBlur = 12;
+        const size = 4;
+        ctx.fillRect(b.x - size/2, b.y - size/2, size, size);
+      } else {
+        ctx.beginPath(); ctx.arc(b.x,b.y,3,0,Math.PI*2); ctx.fill();
+      }
     }
     ctx.shadowBlur = 0;
 
@@ -705,6 +878,9 @@
     // drops
     ctx.shadowBlur = 0;
     dropManager.render(ctx);
+    
+    // bots
+    botManager.render(ctx);
 
     // abilities (EMP wave)
     abilitiesHandler.render(ctx);
@@ -738,6 +914,8 @@
       effectsManager.update(dt);
       dropManager.update(dt);
       abilitiesHandler.update(dt, enemies);
+      fireModeManager.update(dt);
+      botManager.update(dt, enemies, core, bullets);
       comboTimer -= dt;
       if(comboTimer<=0) combo = 1;
       if(waveAnnounceTimer>0){
@@ -758,6 +936,9 @@
     gameover: document.getElementById("gameover"),
     leaderboard: document.getElementById("leaderboard"),
     achievements: document.getElementById("achievements"),
+    upgradehub: document.getElementById("upgrade-hub"),
+    wavecomplete: document.getElementById("wavecomplete"),
+    botmenu: document.getElementById("bot-menu"),
     hud: document.getElementById("hud"),
   };
   function showOnly(name){
@@ -773,6 +954,21 @@
     await initAchievements();
     document.getElementById("menu-stats").innerHTML =
       `<span>MAIOR ONDA: <b>${statsCache.bestWave}</b></span><span>ABATES TOTAIS: <b>${statsCache.totalKills}</b></span><span>PARTIDAS: <b>${statsCache.gamesPlayed}</b></span>`;
+    
+    // Check for saved run
+    const hasSave = await runSaveManager.checkHasSave();
+    const continueBtn = document.getElementById("btn-continue");
+    const continueBadge = document.getElementById("continue-badge");
+    
+    if(hasSave){
+      const save = await runSaveManager.loadSave();
+      continueBtn.classList.remove("hidden");
+      continueBadge.classList.remove("hidden");
+      document.getElementById("continue-wave").textContent = save.wave;
+    } else {
+      continueBtn.classList.add("hidden");
+      continueBadge.classList.add("hidden");
+    }
   }
 
   function achIconOrProgress(def){
@@ -800,8 +996,51 @@
     }).join("");
   }
 
-  function startGame(){
-    resetGame();
+  async function startGame(fromSave = false){
+    if(fromSave){
+      const save = await runSaveManager.loadSave();
+      if(!save){
+        await startGame(false);
+        return;
+      }
+      
+      // Restore state from save
+      await resetGame();
+      
+      wave = save.wave;
+      score = save.score;
+      combo = save.combo;
+      core.hp = save.coreHp;
+      economyManager.runGold = save.runGold || 0;
+      economyManager.runXp = save.runXp || 0;
+      elapsed = save.elapsed || 0;
+      sessionKills = save.sessionKills || 0;
+      sessionTankKills = save.sessionTankKills || 0;
+      sessionShots = save.sessionShots || 0;
+      sessionHits = save.sessionHits || 0;
+      
+      // Restore managers
+      if(save.bots){
+        botManager.restore(save.bots);
+      }
+      if(save.ownedActive){
+        effectsManager.ownedActiveAbility = save.ownedActive;
+      }
+      if(save.ownedSuper){
+        effectsManager.ownedSuperAbility = save.ownedSuper;
+      }
+      if(save.superCharge !== undefined){
+        effectsManager.superCharge = save.superCharge;
+      }
+      if(save.fireModes){
+        fireModeManager.restore(save.fireModes);
+      }
+      
+      lastWaveScoreThreshold = score;
+    } else {
+      await resetGame();
+    }
+    
     state = "playing";
     showOnly(null);
     el.hud.classList.remove("hidden");
@@ -828,6 +1067,13 @@
     state = "gameover";
     sfx.gameover();
     pendingScore = score; pendingWave = wave;
+    
+    // Credit economy to meta
+    await economyManager.creditToMeta();
+    
+    // Clear any saved run
+    await runSaveManager.clearSave();
+    
     showOnly("gameover");
     document.getElementById("gameover-score").textContent = String(pendingScore).padStart(6,"0");
     document.getElementById("gameover-wave").textContent = "ONDA ALCANÇADA: " + pendingWave;
@@ -891,20 +1137,193 @@
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
+  
+  /* ============ WAVE COMPLETE / CHECKPOINT ============ */
+  function showWaveComplete(){
+    state = "wavecomplete";
+    showOnly("wavecomplete");
+    const totals = economyManager.getRunTotals();
+    document.getElementById("wave-summary").innerHTML = 
+      `Onda ${wave} — +${totals.gold} 💰 +${totals.xp} ⭐`;
+    
+    const saveBtn = document.getElementById("btn-save-quit");
+    if(runSaveManager.canSaveAtWave(wave)){
+      saveBtn.classList.remove("hidden");
+    } else {
+      saveBtn.classList.add("hidden");
+    }
+    
+    sfx.wave();
+  }
+  
+  async function saveAndQuit(){
+    // Credit economy first
+    await economyManager.creditToMeta();
+    
+    // Save run state
+    const gameState = {
+      wave, score, combo,
+      coreHp: core.hp,
+      runGold: 0, // Already credited
+      runXp: 0,   // Already credited
+      bots: botManager.serialize(),
+      ownedActive: effectsManager.ownedActiveAbility,
+      ownedSuper: effectsManager.ownedSuperAbility,
+      superCharge: effectsManager.superCharge,
+      fireModeId: fireModeManager.currentMode,
+      fireModes: fireModeManager.serialize(),
+      elapsed,
+      sessionKills,
+      sessionTankKills,
+      sessionShots,
+      sessionHits
+    };
+    
+    await runSaveManager.saveSave(gameState);
+    
+    // Reset economy for next session
+    economyManager.reset();
+    
+    sfx.ui();
+    goMenu();
+  }
+  
+  /* ============ BOT MENU ============ */
+  function renderBotMenu(){
+    const totals = economyManager.getRunTotals();
+    const canPlace = botManager.canPlaceBot(wave);
+    const limit = botManager.getBotLimit(wave);
+    
+    document.getElementById("bot-grid").innerHTML = Object.values(window.BOT_TYPES).map(type => {
+      const canAfford = totals.gold >= type.cost;
+      const disabled = !canPlace || !canAfford;
+      
+      return `<div class="bot-card ${disabled ? 'disabled' : ''}" data-bot-type="${type.id}">
+        <div class="bot-icon">🤖</div>
+        <div class="bot-name">${type.name}</div>
+        <div class="bot-role">${type.role}</div>
+        <div class="bot-cost">${type.cost} 💰</div>
+      </div>`;
+    }).join('') + `<div style="grid-column: 1/-1; text-align:center; color:var(--text-dim); font-size:11px;">Bots: ${botManager.bots.length}/${limit}</div>`;
+    
+    // Add click handlers
+    document.querySelectorAll('.bot-card').forEach(card => {
+      card.addEventListener('click', () => {
+        if(card.classList.contains('disabled')) return;
+        const botType = card.getAttribute('data-bot-type');
+        if(botManager.startPlacement(botType)){
+          state = "playing";
+          showOnly(null);
+          el.hud.classList.remove("hidden");
+          sfx.ui();
+        }
+      });
+    });
+  }
+  
+  /* ============ UPGRADE HUB ============ */
+  async function renderUpgradeHub(){
+    state = "upgradehub";
+    showOnly("upgradehub");
+    
+    const meta = await metaManager.loadMeta();
+    
+    document.getElementById("meta-gold").textContent = meta.gold;
+    document.getElementById("meta-xp").textContent = meta.xp;
+    document.getElementById("meta-level").textContent = meta.level;
+    
+    const upgrades = [
+      {
+        id: "power",
+        title: "PODER DE FOGO",
+        desc: "Aumenta o dano base dos projéteis",
+        effect: "+8% dano por nível"
+      },
+      {
+        id: "fire_rate",
+        title: "CADÊNCIA",
+        desc: "Aumenta a velocidade de tiro",
+        effect: "+4% cadência por nível"
+      },
+      {
+        id: "core_hp",
+        title: "INTEGRIDADE DO NÚCLEO",
+        desc: "Aumenta o HP máximo do núcleo",
+        effect: "+10 HP por nível"
+      }
+    ];
+    
+    document.getElementById("upgrade-grid").innerHTML = upgrades.map(upgrade => {
+      const level = meta[upgrade.id] || 0;
+      const cost = window.getUpgradeCost(level);
+      const canAfford = meta.gold >= cost;
+      const maxLevel = level >= 20;
+      
+      return `<div class="upgrade-card">
+        <div class="upgrade-header">
+          <div class="upgrade-title">${upgrade.title}</div>
+          <div class="upgrade-level">NÍVEL ${level}</div>
+        </div>
+        <div class="upgrade-desc">${upgrade.desc}</div>
+        <div class="upgrade-effect">${upgrade.effect}</div>
+        <button class="upgrade-btn" data-attr="${upgrade.id}" ${!canAfford || maxLevel ? 'disabled' : ''}>
+          ${maxLevel ? 'MÁXIMO' : `MELHORAR (${cost} 💰)`}
+        </button>
+      </div>`;
+    }).join('');
+    
+    // Add click handlers
+    document.querySelectorAll('.upgrade-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if(btn.disabled) return;
+        const attr = btn.getAttribute('data-attr');
+        const result = await metaManager.upgrade(attr);
+        
+        if(result.success){
+          sfx.wave();
+          await renderUpgradeHub(); // Refresh
+        } else {
+          floatText(W/2, H/2, result.reason, "#ff4d6d");
+          sfx.ui();
+        }
+      });
+    });
+  }
 
   /* ============ BUTTONS ============ */
-  document.getElementById("btn-play").onclick = ()=>{ sfx.ui(); startGame(); };
+  document.getElementById("btn-play").onclick = ()=>{ sfx.ui(); startGame(false); };
+  document.getElementById("btn-continue").onclick = ()=>{ sfx.ui(); startGame(true); };
+  document.getElementById("btn-upgrade").onclick = async ()=>{ sfx.ui(); await renderUpgradeHub(); };
   document.getElementById("btn-board").onclick = async ()=>{ sfx.ui(); await renderLeaderboard(); state="leaderboard"; showOnly("leaderboard"); };
   document.getElementById("btn-board-back").onclick = ()=>{ sfx.ui(); goMenu(); };
 
   document.getElementById("btn-ach").onclick = async ()=>{ sfx.ui(); await renderAchievements(); state="achievements"; showOnly("achievements"); };
   document.getElementById("btn-ach-back").onclick = ()=>{ sfx.ui(); goMenu(); };
+  
+  document.getElementById("btn-upgrade-back").onclick = ()=>{ sfx.ui(); goMenu(); };
 
   document.getElementById("btn-resume").onclick = ()=>{ sfx.ui(); resumeGame(); };
-  document.getElementById("btn-restart-pause").onclick = ()=>{ sfx.ui(); startGame(); };
+  document.getElementById("btn-restart-pause").onclick = ()=>{ sfx.ui(); startGame(false); };
   document.getElementById("btn-quit-pause").onclick = ()=>{ sfx.ui(); goMenu(); };
+  
+  document.getElementById("btn-next-wave").onclick = ()=>{ 
+    sfx.ui(); 
+    state = "playing";
+    showOnly(null);
+    el.hud.classList.remove("hidden");
+    announceWave();
+  };
+  document.getElementById("btn-save-quit").onclick = ()=>{ saveAndQuit(); };
+  
+  document.getElementById("btn-bot-cancel").onclick = ()=>{
+    sfx.ui();
+    botManager.cancelPlacement();
+    state = "playing";
+    showOnly(null);
+    el.hud.classList.remove("hidden");
+  };
 
-  document.getElementById("btn-retry").onclick = ()=>{ sfx.ui(); startGame(); };
+  document.getElementById("btn-retry").onclick = ()=>{ sfx.ui(); startGame(false); };
   document.getElementById("btn-quit-go").onclick = ()=>{ sfx.ui(); goMenu(); };
 
   document.getElementById("nameform").addEventListener("submit", async (e)=>{
