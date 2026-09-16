@@ -78,6 +78,7 @@ O jogo inclui um sistema de efeitos que modifica as stats do jogador:
 
 - `index.html` — markup e HUD
 - `css/styles.css` — estilos
+- `js/storage.js` — camada de abstração de persistência (localStorage)
 - `js/meta.js` — sistema de progressão e upgrades
 - `js/economy.js` — sistema de economia (ouro/XP)
 - `js/run-save.js` — checkpoint e save de partida
