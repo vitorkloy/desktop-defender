@@ -962,9 +962,14 @@
     
     if(hasSave){
       const save = await runSaveManager.loadSave();
-      continueBtn.classList.remove("hidden");
-      continueBadge.classList.remove("hidden");
-      document.getElementById("continue-wave").textContent = save.wave;
+      if(save && save.wave){
+        continueBtn.classList.remove("hidden");
+        continueBadge.classList.remove("hidden");
+        document.getElementById("continue-wave").textContent = save.wave;
+      } else {
+        continueBtn.classList.add("hidden");
+        continueBadge.classList.add("hidden");
+      }
     } else {
       continueBtn.classList.add("hidden");
       continueBadge.classList.add("hidden");
