@@ -58,6 +58,13 @@
         <div id="superbar-track"><div id="superbar-fill"></div></div>
       </div>
 
+      <div id="secondarybar-wrap">
+        <div id="secondarybar-label">RAJADA PESADA <span id="secondarybar-time">RMB</span></div>
+        <div id="secondarybar-track"><div id="secondarybar-fill"></div></div>
+      </div>
+
+      <div id="bot-notification-banner"></div>
+
       <div id="toast-wrap"></div>
 
       <!-- In-game controls hint -->
@@ -119,7 +126,8 @@
         <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover</span>
         <span>mouse mirar</span>
         <span>clique atirar</span>
-        <span><kbd>1</kbd>-<kbd>3</kbd> modo tiro</span>
+        <span><kbd>RMB</kbd> rajada</span>
+        <span><kbd>1</kbd>-<kbd>4</kbd> modo tiro</span>
         <span><kbd>B</kbd> colocar bot</span>
         <span><kbd>Space</kbd>/<kbd>Q</kbd> ativa</span>
         <span><kbd>Shift</kbd>/<kbd>E</kbd> super</span>
@@ -273,7 +281,28 @@
           <span class="resource-value" id="meta-level">1</span>
         </div>
       </div>
-      <div class="upgrade-grid" id="upgrade-grid"></div>
+      
+      <div class="hub-tabs">
+        <button class="hub-tab active" data-tab="upgrades">MELHORIAS</button>
+        <button class="hub-tab" data-tab="bots">LOADOUT DE BOTS</button>
+      </div>
+      
+      <div id="hub-content-upgrades" class="hub-content active">
+        <div class="upgrade-grid" id="upgrade-grid"></div>
+      </div>
+      
+      <div id="hub-content-bots" class="hub-content">
+        <div class="loadout-section">
+          <div class="loadout-header">
+            <div class="loadout-title">SEU LOADOUT</div>
+            <div class="loadout-desc">Configure até 3 bots que serão sugeridos durante partidas</div>
+          </div>
+          <div id="loadout-list"></div>
+          <div class="available-bots-header">ADICIONAR BOT</div>
+          <div id="available-bots-grid"></div>
+        </div>
+      </div>
+      
       <div class="btn-row">
         <button class="btn primary" id="btn-upgrade-back">VOLTAR</button>
       </div>

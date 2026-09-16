@@ -12,7 +12,8 @@ Jogo de defesa de núcleo no navegador (PT-BR). Proteja o núcleo a qualquer cus
 
 - **WASD** — mover
 - **Mouse** — mirar
-- **Clique esquerdo** — atirar
+- **Clique esquerdo** — atirar (primário)
+- **Clique direito (RMB)** — rajada pesada (tiro secundário, 8s recarga)
 - **1-4** — trocar modo de tiro (quando desbloqueado)
 - **B** — abrir menu de bots de defesa
 - **Space** ou **Q** — ativar habilidade ativa
@@ -25,7 +26,8 @@ Jogo de defesa de núcleo no navegador (PT-BR). Proteja o núcleo a qualquer cus
 ### Progressão Meta
 - **Hub de Aprimoramento** no menu principal
 - Gaste ouro para melhorar poder, cadência e HP do núcleo
-- Upgrades persistem entre partidas
+- **Loadout de Bots**: configure até 3 bots prioritários que serão sugeridos durante partidas
+- Upgrades e configurações persistem entre partidas
 - XP determina seu nível de conta
 
 ### Economia
@@ -46,6 +48,13 @@ Jogo de defesa de núcleo no navegador (PT-BR). Proteja o núcleo a qualquer cus
 - **RAJADA (4)** — 3 disparos rápidos por clique, duração limitada
 - Desbloqueie modos através de drops durante a run
 
+### Tiro Secundário (RMB)
+- **Rajada Pesada** — botão direito do mouse dispara 3 projéteis de alto dano
+- Recarga independente de 8 segundos
+- 4x o dano base do tiro primário
+- Projéteis disparados em cone estreito para precisão
+- Feedback visual e sonoro distinto
+
 ### Bots de Defesa
 - **Artilheiro** — ataca inimigos próximos automaticamente
 - **Médico** — regenera HP do núcleo periodicamente
@@ -53,6 +62,8 @@ Jogo de defesa de núcleo no navegador (PT-BR). Proteja o núcleo a qualquer cus
 - Coloque até 2 + floor(onda/5) bots por vez
 - Custo em ouro da run
 - Guardiões podem ser melhorados com ouro para aumentar alcance e proteção
+- **Loadout**: configure bots prioritários no Hub de Aprimoramento
+- **Notificações automáticas** quando você tem ouro suficiente para colocar/melhorar bots do loadout
 
 ## Sistema de Efeitos
 

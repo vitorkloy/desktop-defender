@@ -178,6 +178,16 @@
     ui(){ beep(440,0.05,"square",0.04,440); }
   };
 
+  /* ============ SECONDARY FIRE (RMB) ============ */
+  const secondaryFire = {
+    cooldown: 0,
+    maxCooldown: 8.0,
+    damage: 4.0,
+    projectileCount: 3,
+    spreadAngle: 0.25,
+    color: "#ff9d47"
+  };
+
   /* ============ INPUT ============ */
   const keys = {};
   window.addEventListener("keydown",(e)=>{
@@ -237,7 +247,7 @@
   });
   window.addEventListener("keyup",(e)=>{ keys[e.key.toLowerCase()] = false; });
 
-  const mouse = { x:W/2, y:H/2-100, down:false };
+  const mouse = { x:W/2, y:H/2-100, down:false, rightDown:false };
   canvas.addEventListener("mousemove",(e)=>{
     const p = toLogical(e.clientX, e.clientY);
     mouse.x = p.x; mouse.y = p.y;
@@ -248,10 +258,19 @@
     }
   });
   canvas.addEventListener("mousedown",(e)=>{ 
-    mouse.down = true;
+    if(e.button === 0){
+      mouse.down = true;
+    } else if(e.button === 2){
+      mouse.rightDown = true;
+      
+      // Fire secondary weapon if in playing state
+      if(state === "playing" && secondaryFire.cooldown <= 0){
+        fireSecondaryWeapon();
+      }
+    }
     
-    // Handle bot placement
-    if(botManager.placementMode){
+    // Handle bot placement (left click only)
+    if(e.button === 0 && botManager.placementMode){
       const totals = economyManager.getRunTotals();
       const result = botManager.placeBot(mouse.x, mouse.y, core.x, core.y, core.radius, {w:W, h:H}, totals.gold);
       
@@ -259,13 +278,24 @@
         economyManager.runGold -= result.cost;
         sfx.wave();
         floatText(mouse.x, mouse.y - 20, "-" + result.cost + " 💰", "#ffd23f");
+        
+        // Check if this was from loadout and increment index
+        if(nextBotLoadoutIndex < botLoadout.length){
+          const expectedType = botLoadout[nextBotLoadoutIndex].type;
+          if(result.bot.type === expectedType){
+            nextBotLoadoutIndex++;
+          }
+        }
       } else {
         floatText(mouse.x, mouse.y - 20, result.reason, "#ff4d6d");
         sfx.ui();
       }
     }
   });
-  window.addEventListener("mouseup",(e)=>{ mouse.down = false; });
+  window.addEventListener("mouseup",(e)=>{ 
+    if(e.button === 0) mouse.down = false;
+    if(e.button === 2) mouse.rightDown = false;
+  });
   canvas.addEventListener("contextmenu",(e)=>e.preventDefault());
 
   /* ============ GAME STATE ============ */
@@ -278,6 +308,11 @@
   // sessão atual (para conquistas/estatísticas)
   let sessionShots = 0, sessionHits = 0, sessionKills = 0, sessionTankKills = 0;
   let bestComboThisRun = 1, tookDamageThisWave = false, killTimestamps = [];
+  
+  // Bot loadout notifications
+  let lastBotNotificationTime = 0;
+  let botLoadout = [];
+  let nextBotLoadoutIndex = 0;
   
   // Meta base stats (loaded on game start)
   let metaBaseStats = {
@@ -295,6 +330,9 @@
     bullets = []; enemies = []; particles = []; floaters = [];
     score = 0; wave = 1; combo = 1; comboTimer = 0;
     spawnTimer = 0.6; waveAnnounceTimer = 0; shake = 0; fireCooldown = 0; elapsed = 0;
+    secondaryFire.cooldown = 0;
+    lastBotNotificationTime = 0;
+    nextBotLoadoutIndex = 0;
     
     // Load meta and apply to base stats
     const meta = await metaManager.loadMeta();
@@ -304,6 +342,9 @@
       coreMaxHp: 100
     };
     metaBaseStats = metaManager.applyMetaToBaseStats(meta, metaBaseStats);
+    
+    // Load bot loadout
+    botLoadout = await metaManager.getBotLoadout();
     
     core.maxHp = metaBaseStats.coreMaxHp;
     core.hp = core.maxHp;
@@ -385,6 +426,109 @@
   function floatText(x,y,text,color){
     floaters.push({x,y,text,color,age:0,life:0.8});
   }
+
+  function checkBotLoadoutNotifications(){
+    const now = elapsed;
+    
+    // Cooldown between notifications (10 seconds)
+    if(now - lastBotNotificationTime < 10) return;
+    
+    const totals = economyManager.getRunTotals();
+    const limit = botManager.getBotLimit(wave);
+    
+    // Check if we can place the next bot from loadout
+    if(nextBotLoadoutIndex < botLoadout.length && botManager.bots.length < limit){
+      const nextBot = botLoadout[nextBotLoadoutIndex];
+      const botType = window.BOT_TYPES[nextBot.type];
+      
+      if(!botType) return;
+      
+      // Check if player can afford
+      if(totals.gold >= botType.cost){
+        showBotNotification(botType, false);
+        lastBotNotificationTime = now;
+        return;
+      }
+    }
+    
+    // Check if we should suggest ward upgrade
+    const wards = botManager.bots.filter(b => b.type === "bot_ward");
+    for(const ward of wards){
+      const wardLoadout = botLoadout.find(b => b.type === "bot_ward");
+      if(wardLoadout && wardLoadout.preferUpgrade && ward.level < 3){
+        const upgradeCost = window.BOT_TYPES.bot_ward.upgradeCost || 30;
+        if(totals.gold >= upgradeCost){
+          showBotNotification(null, true, ward);
+          lastBotNotificationTime = now;
+          return;
+        }
+      }
+    }
+  }
+
+  function showBotNotification(botType, isUpgrade, ward){
+    const banner = document.getElementById("bot-notification-banner");
+    if(!banner) return;
+    
+    if(isUpgrade && ward){
+      banner.innerHTML = `
+        <div class="bot-notif-content">
+          <div class="bot-notif-icon">⬆️</div>
+          <div class="bot-notif-text">
+            <div class="bot-notif-title">MELHORAR GUARDIÃO</div>
+            <div class="bot-notif-desc">Nível ${ward.level} → ${ward.level + 1}</div>
+          </div>
+        </div>
+        <div class="bot-notif-actions">
+          <button class="bot-notif-btn primary" onclick="openBotMenuFromNotif()">MELHORAR</button>
+          <button class="bot-notif-btn" onclick="dismissBotNotification()">DEPOIS</button>
+        </div>
+      `;
+    } else if(botType){
+      banner.innerHTML = `
+        <div class="bot-notif-content">
+          <div class="bot-notif-icon">🤖</div>
+          <div class="bot-notif-text">
+            <div class="bot-notif-title">COLOCAR ${botType.name.toUpperCase()}</div>
+            <div class="bot-notif-desc">${botType.cost} 💰</div>
+          </div>
+        </div>
+        <div class="bot-notif-actions">
+          <button class="bot-notif-btn primary" onclick="openBotMenuFromNotif()">COLOCAR</button>
+          <button class="bot-notif-btn" onclick="dismissBotNotification()">DEPOIS</button>
+        </div>
+      `;
+    }
+    
+    banner.classList.add("show");
+  }
+
+  window.openBotMenuFromNotif = function(){
+    dismissBotNotification();
+    
+    // Preselect bot type if placing from loadout
+    if(nextBotLoadoutIndex < botLoadout.length){
+      const nextBot = botLoadout[nextBotLoadoutIndex];
+      if(botManager.startPlacement(nextBot.type)){
+        state = "playing";
+        showOnly(null);
+        el.hud.classList.remove("hidden");
+        sfx.ui();
+        return;
+      }
+    }
+    
+    // Otherwise open bot menu
+    state = "botmenu";
+    showOnly("botmenu");
+    renderBotMenu();
+    sfx.ui();
+  };
+
+  window.dismissBotNotification = function(){
+    const banner = document.getElementById("bot-notification-banner");
+    if(banner) banner.classList.remove("show");
+  };
 
   /* ============ UPDATE ============ */
   function updatePlayer(dt){
@@ -487,6 +631,32 @@
     sessionShots += 1;
     sfx.shoot();
     shake = Math.max(shake, 1.5);
+  }
+
+  function fireSecondaryWeapon(){
+    const mods = effectsManager.computeMods();
+    const baseDamage = metaBaseStats.bulletDamage * mods.bulletDamage * secondaryFire.damage;
+    
+    // Fire heavy burst (3 projectiles in tight cone)
+    for(let i=0; i<secondaryFire.projectileCount; i++){
+      const spreadOffset = (i - (secondaryFire.projectileCount-1)/2) * secondaryFire.spreadAngle;
+      const a = player.angle + spreadOffset;
+      bullets.push({
+        x: player.x+Math.cos(a)*player.radius*1.4,
+        y: player.y+Math.sin(a)*player.radius*1.4,
+        vx: Math.cos(a)*720, vy: Math.sin(a)*720, life:1.2,
+        damage: baseDamage,
+        pierce: false,
+        color: secondaryFire.color,
+        isSecondary: true
+      });
+    }
+    
+    secondaryFire.cooldown = secondaryFire.maxCooldown;
+    sessionShots += secondaryFire.projectileCount;
+    beep(380,0.12,"square",0.06,280);
+    shake = Math.max(shake, 3);
+    floatText(player.x, player.y - 25, "RAJADA PESADA", secondaryFire.color);
   }
 
   function updateBullets(dt){
@@ -741,6 +911,20 @@
     } else {
       superFill.classList.remove("charged");
     }
+    
+    // Update secondary fire bar
+    const secondaryPct = Math.max(0, ((secondaryFire.maxCooldown - secondaryFire.cooldown) / secondaryFire.maxCooldown) * 100);
+    const secondaryFill = document.getElementById("secondarybar-fill");
+    const secondaryTime = document.getElementById("secondarybar-time");
+    secondaryFill.style.width = secondaryPct + "%";
+    
+    if(secondaryFire.cooldown <= 0){
+      secondaryFill.classList.add("ready");
+      secondaryTime.textContent = "PRONTO";
+    } else {
+      secondaryFill.classList.remove("ready");
+      secondaryTime.textContent = Math.ceil(secondaryFire.cooldown) + "s";
+    }
   }
 
   /* ============ RENDER ============ */
@@ -912,6 +1096,7 @@
 
     if(state==="playing"){
       elapsed += dt;
+      secondaryFire.cooldown = Math.max(0, secondaryFire.cooldown - dt);
       updatePlayer(dt);
       updateBullets(dt);
       updateEnemies(dt);
@@ -922,6 +1107,7 @@
       abilitiesHandler.update(dt, enemies);
       fireModeManager.update(dt);
       botManager.update(dt, enemies, core, bullets);
+      checkBotLoadoutNotifications();
       comboTimer -= dt;
       if(comboTimer<=0) combo = 1;
       if(waveAnnounceTimer>0){
@@ -1281,6 +1467,17 @@
     document.getElementById("meta-xp").textContent = meta.xp;
     document.getElementById("meta-level").textContent = meta.level;
     
+    // Setup tab switching
+    document.querySelectorAll('.hub-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.hub-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.hub-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('hub-content-' + tab.dataset.tab).classList.add('active');
+        sfx.ui();
+      });
+    });
+    
     const upgrades = [
       {
         id: "power",
@@ -1321,7 +1518,7 @@
       </div>`;
     }).join('');
     
-    // Add click handlers
+    // Add click handlers for upgrades
     document.querySelectorAll('.upgrade-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         if(btn.disabled) return;
@@ -1330,10 +1527,92 @@
         
         if(result.success){
           sfx.wave();
-          await renderUpgradeHub(); // Refresh
+          await renderUpgradeHub();
         } else {
           floatText(W/2, H/2, result.reason, "#ff4d6d");
           sfx.ui();
+        }
+      });
+    });
+    
+    // Render bot loadout
+    await renderBotLoadout();
+  }
+  
+  async function renderBotLoadout(){
+    const loadout = await metaManager.getBotLoadout();
+    const loadoutList = document.getElementById("loadout-list");
+    
+    if(loadout.length === 0){
+      loadoutList.innerHTML = '<div class="loadout-empty">Nenhum bot no loadout. Adicione até 3 bots abaixo.</div>';
+    } else {
+      loadoutList.innerHTML = loadout.map((item, index) => {
+        const botType = window.BOT_TYPES[item.type];
+        if(!botType) return '';
+        
+        const canUpgrade = item.type === 'bot_ward';
+        
+        return `<div class="loadout-item">
+          <div class="loadout-item-icon">🤖</div>
+          <div class="loadout-item-info">
+            <div class="loadout-item-name">${botType.name}</div>
+            <div class="loadout-item-role">${botType.role}</div>
+          </div>
+          <div class="loadout-item-actions">
+            ${canUpgrade ? `<div class="loadout-upgrade-toggle ${item.preferUpgrade ? 'active' : ''}" data-index="${index}">
+              ${item.preferUpgrade ? '⬆️ Melhorar' : 'Só Colocar'}
+            </div>` : ''}
+            <div class="loadout-remove-btn" data-index="${index}">×</div>
+          </div>
+        </div>`;
+      }).join('');
+      
+      // Add event listeners
+      document.querySelectorAll('.loadout-upgrade-toggle').forEach(toggle => {
+        toggle.addEventListener('click', async () => {
+          const index = parseInt(toggle.dataset.index);
+          const result = await metaManager.toggleBotUpgradePreference(index);
+          if(result.success){
+            sfx.ui();
+            await renderBotLoadout();
+          }
+        });
+      });
+      
+      document.querySelectorAll('.loadout-remove-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const index = parseInt(btn.dataset.index);
+          await metaManager.removeBotFromLoadout(index);
+          sfx.ui();
+          await renderBotLoadout();
+        });
+      });
+    }
+    
+    // Render available bots
+    const availableBotsGrid = document.getElementById("available-bots-grid");
+    const loadoutFull = loadout.length >= 3;
+    
+    availableBotsGrid.innerHTML = Object.values(window.BOT_TYPES).map(botType => {
+      const alreadyInLoadout = loadout.some(item => item.type === botType.id);
+      const disabled = loadoutFull || alreadyInLoadout;
+      
+      return `<div class="available-bot-card ${disabled ? 'disabled' : ''}" data-bot-type="${botType.id}">
+        <div class="available-bot-icon">🤖</div>
+        <div class="available-bot-name">${botType.name}</div>
+        <div class="available-bot-role">${botType.role}</div>
+      </div>`;
+    }).join('');
+    
+    // Add click handlers
+    document.querySelectorAll('.available-bot-card').forEach(card => {
+      card.addEventListener('click', async () => {
+        if(card.classList.contains('disabled')) return;
+        const botType = card.dataset.botType;
+        const result = await metaManager.addBotToLoadout(botType);
+        if(result.success){
+          sfx.wave();
+          await renderBotLoadout();
         }
       });
     });
