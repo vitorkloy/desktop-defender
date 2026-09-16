@@ -11,7 +11,8 @@
     core_hp: 0,
     gold: 0,
     xp: 0,
-    level: 1
+    level: 1,
+    botLoadout: []
   };
 
   // Scaling: cost grows exponentially
@@ -107,6 +108,52 @@
 
     applyMetaToBaseStats(meta, baseStats) {
       return applyMetaToBaseStats(meta, baseStats);
+    }
+
+    async getBotLoadout() {
+      const meta = await this.loadMeta();
+      return meta.botLoadout || [];
+    }
+
+    async setBotLoadout(loadout) {
+      const meta = await this.loadMeta();
+      meta.botLoadout = loadout;
+      await this.saveMeta(meta);
+    }
+
+    async addBotToLoadout(botType) {
+      const meta = await this.loadMeta();
+      if (!meta.botLoadout) meta.botLoadout = [];
+      
+      if (meta.botLoadout.length >= 3) {
+        return { success: false, reason: "LOADOUT CHEIO (MÁX 3)" };
+      }
+      
+      meta.botLoadout.push({ type: botType, preferUpgrade: false });
+      await this.saveMeta(meta);
+      return { success: true };
+    }
+
+    async removeBotFromLoadout(index) {
+      const meta = await this.loadMeta();
+      if (!meta.botLoadout || index < 0 || index >= meta.botLoadout.length) {
+        return { success: false, reason: "ÍNDICE INVÁLIDO" };
+      }
+      
+      meta.botLoadout.splice(index, 1);
+      await this.saveMeta(meta);
+      return { success: true };
+    }
+
+    async toggleBotUpgradePreference(index) {
+      const meta = await this.loadMeta();
+      if (!meta.botLoadout || index < 0 || index >= meta.botLoadout.length) {
+        return { success: false };
+      }
+      
+      meta.botLoadout[index].preferUpgrade = !meta.botLoadout[index].preferUpgrade;
+      await this.saveMeta(meta);
+      return { success: true, newValue: meta.botLoadout[index].preferUpgrade };
     }
   }
 

@@ -180,6 +180,16 @@
     ui(){ beep(440,0.05,"square",0.04,440); }
   };
 
+  /* ============ SECONDARY FIRE (RMB) ============ */
+  const secondaryFire = {
+    cooldown: 0,
+    maxCooldown: 8.0,
+    damage: 4.0,
+    projectileCount: 3,
+    spreadAngle: 0.25,
+    color: "#ff9d47"
+  };
+
   /* ============ INPUT ============ */
   window.addEventListener("keydown",(e)=>{
     const key = e.key.toLowerCase();
@@ -187,6 +197,14 @@
     if(inputManager.isPause(key)){
       if(state==="playing"){ pauseGame(); }
       else if(state==="paused"){ resumeGame(); }
+    }
+    
+    // Toggle in-game controls hint with H or ?
+    if(state==="playing" && (key==="h" || key==="?")){
+      if(el.controlshint){
+        el.controlshint.classList.toggle("hidden");
+      }
+      e.preventDefault();
     }
     
     // Fire mode switching (1-4) - P1 only in v1
@@ -241,10 +259,22 @@
     }
   });
   canvas.addEventListener("mousedown",(e)=>{ 
-    inputManager.setMouseDown(true);
+    if(e.button === 0){
+      inputManager.setMouseDown(true);
+    } else if(e.button === 2){
+      inputManager.setMouseRightDown(true);
+      
+      // Fire secondary (RMB) if playing
+      if(state === "playing" && secondaryFire.cooldown <= 0){
+        const p1 = playersManager.getPlayer(1);
+        if(p1){
+          fireSecondaryBurst(p1);
+        }
+      }
+    }
     
     // Handle bot placement
-    if(botManager.placementMode){
+    if(e.button === 0 && botManager.placementMode){
       const mouse = inputManager.getMousePosition();
       const totals = economyManager.getRunTotals();
       const result = botManager.placeBot(mouse.x, mouse.y, core.x, core.y, core.radius, {w:W, h:H}, totals.gold);
@@ -259,7 +289,13 @@
       }
     }
   });
-  window.addEventListener("mouseup",(e)=>{ inputManager.setMouseDown(false); });
+  window.addEventListener("mouseup",(e)=>{ 
+    if(e.button === 0){
+      inputManager.setMouseDown(false);
+    } else if(e.button === 2){
+      inputManager.setMouseRightDown(false);
+    }
+  });
   canvas.addEventListener("contextmenu",(e)=>e.preventDefault());
 
   /* ============ GAME STATE ============ */
@@ -288,6 +324,7 @@
     bullets = []; enemies = []; particles = []; floaters = [];
     score = 0; wave = 1; combo = 1; comboTimer = 0;
     spawnTimer = 0.6; waveAnnounceTimer = 0; shake = 0; elapsed = 0;
+    secondaryFire.cooldown = 0;
     
     // Initialize players based on mode
     playersManager.reset(mode);
@@ -507,6 +544,31 @@
     sessionShots += 1;
     sfx.shoot();
     shake = Math.max(shake, 1.5);
+  }
+
+  function fireSecondaryBurst(player){
+    const mods = effectsManager.computeMods();
+    const baseDamage = metaBaseStats.bulletDamage * mods.bulletDamage * secondaryFire.damage;
+    
+    for(let i=0; i<secondaryFire.projectileCount; i++){
+      const spreadOffset = (i - (secondaryFire.projectileCount-1)/2) * secondaryFire.spreadAngle;
+      const a = player.angle + spreadOffset;
+      bullets.push({
+        x: player.x+Math.cos(a)*player.radius*1.4,
+        y: player.y+Math.sin(a)*player.radius*1.4,
+        vx: Math.cos(a)*640, vy: Math.sin(a)*640, life:1.1,
+        damage: baseDamage,
+        pierce: false,
+        color: secondaryFire.color,
+        isSecondary: true
+      });
+    }
+    
+    secondaryFire.cooldown = secondaryFire.maxCooldown;
+    sessionShots += secondaryFire.projectileCount;
+    sfx.shoot();
+    shake = Math.max(shake, 2.5);
+    floatText(player.x, player.y - 25, "RAJADA PESADA", secondaryFire.color);
   }
 
   function updateBullets(dt){
@@ -761,6 +823,21 @@
     } else {
       superFill.classList.remove("charged");
     }
+    
+    // Update secondary fire bar
+    const secondaryPct = Math.max(0, ((secondaryFire.maxCooldown - secondaryFire.cooldown) / secondaryFire.maxCooldown) * 100);
+    const secondaryFill = document.getElementById("secondarybar-fill");
+    const secondaryTime = document.getElementById("secondarybar-time");
+    if(secondaryFill){
+      secondaryFill.style.width = secondaryPct + "%";
+      if(secondaryPct >= 100){
+        secondaryFill.classList.add("charged");
+        if(secondaryTime) secondaryTime.textContent = "RMB";
+      } else {
+        secondaryFill.classList.remove("charged");
+        if(secondaryTime) secondaryTime.textContent = Math.ceil(secondaryFire.cooldown) + "s";
+      }
+    }
   }
 
   /* ============ RENDER ============ */
@@ -944,6 +1021,7 @@
 
     if(state==="playing"){
       elapsed += dt;
+      secondaryFire.cooldown = Math.max(0, secondaryFire.cooldown - dt);
       updatePlayers(dt);
       updateBullets(dt);
       updateEnemies(dt);
@@ -978,6 +1056,9 @@
     wavecomplete: document.getElementById("wavecomplete"),
     botmenu: document.getElementById("bot-menu"),
     hud: document.getElementById("hud"),
+    quitconfirm: document.getElementById("quit-confirm"),
+    controlspanel: document.getElementById("controls-panel"),
+    controlshint: document.getElementById("controls-hint-overlay"),
   };
   function showOnly(name){
     for(const k in el) el[k].classList.add("hidden");
@@ -1355,7 +1436,11 @@
 
   document.getElementById("btn-resume").onclick = ()=>{ sfx.ui(); resumeGame(); };
   document.getElementById("btn-restart-pause").onclick = ()=>{ sfx.ui(); startGame(false, playersManager.mode); };
-  document.getElementById("btn-quit-pause").onclick = ()=>{ sfx.ui(); goMenu(); };
+  document.getElementById("btn-quit-pause").onclick = ()=>{ 
+    sfx.ui(); 
+    state = "quitconfirm";
+    showOnly("quitconfirm");
+  };
   
   document.getElementById("btn-next-wave").onclick = ()=>{ 
     sfx.ui(); 
@@ -1390,6 +1475,28 @@
     document.getElementById("nameform").classList.add("hidden");
     sfx.wave();
   });
+
+  /* ============ QUIT CONFIRMATION ============ */
+  document.getElementById("btn-quit-cancel").onclick = ()=>{ 
+    sfx.ui(); 
+    state = "paused";
+    showOnly("pause");
+  };
+  document.getElementById("btn-quit-confirm").onclick = ()=>{ 
+    sfx.ui(); 
+    goMenu();
+  };
+
+  /* ============ CONTROLS PANEL ============ */
+  document.getElementById("btn-controls").onclick = ()=>{ 
+    sfx.ui(); 
+    state = "controlspanel";
+    showOnly("controlspanel");
+  };
+  document.getElementById("btn-controls-back").onclick = ()=>{ 
+    sfx.ui(); 
+    goMenu();
+  };
 
   /* ============ INIT ============ */
   goMenu();

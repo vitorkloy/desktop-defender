@@ -58,7 +58,53 @@
         <div id="superbar-track"><div id="superbar-fill"></div></div>
       </div>
 
+      <div id="secondarybar-wrap">
+        <div id="secondarybar-label">RAJADA PESADA <span id="secondarybar-time">RMB</span></div>
+        <div id="secondarybar-track"><div id="secondarybar-fill"></div></div>
+      </div>
+
+      <div id="bot-notification-banner"></div>
+
       <div id="toast-wrap"></div>
+
+      <!-- In-game controls hint -->
+      <div id="controls-hint-overlay" class="hidden">
+        <div class="hint-title">CONTROLES</div>
+        <div class="controls-list">
+          <div class="control-item">
+            <div class="control-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
+            <div class="control-desc">Mover</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys">Mouse</div>
+            <div class="control-desc">Mirar</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys">Clique</div>
+            <div class="control-desc">Atirar</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys"><kbd>1</kbd>-<kbd>4</kbd></div>
+            <div class="control-desc">Modo de tiro</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys"><kbd>B</kbd></div>
+            <div class="control-desc">Bots</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys"><kbd>Space</kbd>/<kbd>Q</kbd></div>
+            <div class="control-desc">Ativa</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys"><kbd>Shift</kbd>/<kbd>E</kbd></div>
+            <div class="control-desc">Super</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys"><kbd>P</kbd></div>
+            <div class="control-desc">Pausar</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- MENU -->
@@ -75,11 +121,16 @@
         <button class="btn" id="btn-upgrade">APRIMORAR</button>
         <button class="btn" id="btn-board">RANKING</button>
         <button class="btn" id="btn-ach">CONQUISTAS</button>
+        <button class="btn" id="btn-controls">CONTROLES</button>
       </div>
       <div class="controls-hint">
         <span><b>P1:</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover</span>
         <span>mouse mirar</span>
         <span>clique atirar</span>
+<<<<<<< HEAD
+=======
+        <span><kbd>RMB</kbd> rajada</span>
+>>>>>>> origin/main
         <span><kbd>1</kbd>-<kbd>4</kbd> modo tiro</span>
         <span><kbd>B</kbd> colocar bot</span>
         <span><kbd>Q</kbd> ativa</span>
@@ -119,6 +170,64 @@
       <div class="bot-grid" id="bot-grid"></div>
       <div class="btn-row">
         <button class="btn primary" id="btn-bot-cancel">CANCELAR</button>
+      </div>
+    </div>
+
+    <!-- QUIT CONFIRMATION MODAL -->
+    <div id="quit-confirm" class="overlay hidden">
+      <h1 class="title" style="font-size:24px;">SAIR DA PARTIDA?</h1>
+      <div class="modal-message">
+        O progresso da run atual será perdido.
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-quit-cancel">CANCELAR</button>
+        <button class="btn danger" id="btn-quit-confirm">SAIR</button>
+      </div>
+    </div>
+
+    <!-- CONTROLS PANEL -->
+    <div id="controls-panel" class="overlay hidden">
+      <h1 class="title" style="font-size:28px;">CONTROLES</h1>
+      <div class="controls-list">
+        <div class="control-item">
+          <div class="control-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
+          <div class="control-desc">Mover jogador</div>
+        </div>
+        <div class="control-item">
+          <div class="control-keys">Mouse</div>
+          <div class="control-desc">Mirar</div>
+        </div>
+        <div class="control-item">
+          <div class="control-keys">Clique esquerdo</div>
+          <div class="control-desc">Atirar</div>
+        </div>
+        <div class="control-item">
+          <div class="control-keys"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></div>
+          <div class="control-desc">Trocar modo de tiro</div>
+        </div>
+        <div class="control-item">
+          <div class="control-keys"><kbd>B</kbd></div>
+          <div class="control-desc">Colocar bot de defesa</div>
+        </div>
+        <div class="control-item">
+          <div class="control-keys"><kbd>Space</kbd> ou <kbd>Q</kbd></div>
+          <div class="control-desc">Usar habilidade ativa</div>
+        </div>
+        <div class="control-item">
+          <div class="control-keys"><kbd>Shift</kbd> ou <kbd>E</kbd></div>
+          <div class="control-desc">Usar super (quando carregado)</div>
+        </div>
+        <div class="control-item">
+          <div class="control-keys"><kbd>P</kbd> ou <kbd>Esc</kbd></div>
+          <div class="control-desc">Pausar jogo</div>
+        </div>
+        <div class="control-item">
+          <div class="control-keys"><kbd>H</kbd> ou <kbd>?</kbd></div>
+          <div class="control-desc">Mostrar/ocultar controles (durante partida)</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-controls-back">VOLTAR</button>
       </div>
     </div>
 
@@ -181,7 +290,28 @@
           <span class="resource-value" id="meta-level">1</span>
         </div>
       </div>
-      <div class="upgrade-grid" id="upgrade-grid"></div>
+      
+      <div class="hub-tabs">
+        <button class="hub-tab active" data-tab="upgrades">MELHORIAS</button>
+        <button class="hub-tab" data-tab="bots">LOADOUT DE BOTS</button>
+      </div>
+      
+      <div id="hub-content-upgrades" class="hub-content active">
+        <div class="upgrade-grid" id="upgrade-grid"></div>
+      </div>
+      
+      <div id="hub-content-bots" class="hub-content">
+        <div class="loadout-section">
+          <div class="loadout-header">
+            <div class="loadout-title">SEU LOADOUT</div>
+            <div class="loadout-desc">Configure até 3 bots que serão sugeridos durante partidas</div>
+          </div>
+          <div id="loadout-list"></div>
+          <div class="available-bots-header">ADICIONAR BOT</div>
+          <div id="available-bots-grid"></div>
+        </div>
+      </div>
+      
       <div class="btn-row">
         <button class="btn primary" id="btn-upgrade-back">VOLTAR</button>
       </div>

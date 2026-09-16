@@ -26,12 +26,14 @@ Dois jogadores no mesmo computador defendem UM núcleo compartilhado em modo coo
 ### Jogador 1 (P1)
 - **WASD** — mover
 - **Mouse** — mirar
-- **Clique esquerdo** — atirar
+- **Clique esquerdo** — atirar (primário)
+- **Clique direito (RMB)** — rajada pesada (tiro secundário, 8s recarga)
 - **1-4** — trocar modo de tiro (quando desbloqueado)
 - **B** — abrir menu de bots de defesa
-- **Q** — ativar habilidade ativa
-- **E** — usar super (quando carregado)
-- **P** — pausar
+- **Space** ou **Q** — ativar habilidade ativa
+- **Shift** ou **E** — usar super (quando carregado)
+- **P** ou **Esc** — pausar
+- **H** ou **?** — mostrar/ocultar controles durante a partida
 
 ### Jogador 2 (P2) - Multiplayer Local
 - **IJKL** — mover
@@ -45,7 +47,8 @@ Dois jogadores no mesmo computador defendem UM núcleo compartilhado em modo coo
 ### Progressão Meta
 - **Hub de Aprimoramento** no menu principal
 - Gaste ouro para melhorar poder, cadência e HP do núcleo
-- Upgrades persistem entre partidas
+- **Loadout de Bots**: configure até 3 bots prioritários que serão sugeridos durante partidas
+- Upgrades e configurações persistem entre partidas
 - XP determina seu nível de conta
 
 ### Economia
@@ -66,6 +69,13 @@ Dois jogadores no mesmo computador defendem UM núcleo compartilhado em modo coo
 - **RAJADA (4)** — 3 disparos rápidos por clique, duração limitada
 - Desbloqueie modos através de drops durante a run
 
+### Tiro Secundário (RMB)
+- **Rajada Pesada** — botão direito do mouse dispara 3 projéteis de alto dano
+- Recarga independente de 8 segundos
+- 4x o dano base do tiro primário
+- Projéteis disparados em cone estreito para precisão
+- Feedback visual e sonoro distinto
+
 ### Bots de Defesa
 - **Artilheiro** — ataca inimigos próximos automaticamente
 - **Médico** — regenera HP do núcleo periodicamente
@@ -73,6 +83,8 @@ Dois jogadores no mesmo computador defendem UM núcleo compartilhado em modo coo
 - Coloque até 2 + floor(onda/5) bots por vez
 - Custo em ouro da run
 - Guardiões podem ser melhorados com ouro para aumentar alcance e proteção
+- **Loadout**: configure bots prioritários no Hub de Aprimoramento
+- **Notificações automáticas** quando você tem ouro suficiente para colocar/melhorar bots do loadout
 
 ## Sistema de Efeitos
 
@@ -108,4 +120,5 @@ O jogo inclui um sistema de efeitos que modifica as stats do jogador:
 - `js/effects.js` — sistema de efeitos e catálogo
 - `js/drops.js` — sistema de drops
 - `js/abilities.js` — habilidades ativas e super
+- `js/players.js` — sistema de jogadores multiplayer
 - `js/game.js` — lógica principal do jogo
