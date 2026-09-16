@@ -18,7 +18,8 @@ Jogo de defesa de núcleo no navegador (PT-BR). Proteja o núcleo a qualquer cus
 - **B** — abrir menu de bots de defesa
 - **Space** ou **Q** — ativar habilidade ativa
 - **Shift** ou **E** — usar super (quando carregado)
-- **P** — pausar
+- **P** ou **Esc** — pausar
+- **H** ou **?** — mostrar/ocultar controles durante a partida
 
 ## Features
 
