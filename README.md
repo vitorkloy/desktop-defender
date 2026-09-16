@@ -8,16 +8,37 @@ Jogo de defesa de núcleo no navegador (PT-BR). Proteja o núcleo a qualquer cus
   - `python3 -m http.server 8000`
   - depois acesse `http://127.0.0.1:8000`
 
+## Modos de Jogo
+
+### Single Player
+Modo clássico com 1 jogador defendendo o núcleo.
+
+### Multiplayer Local (2 Jogadores)
+Dois jogadores no mesmo computador defendem UM núcleo compartilhado em modo cooperativo.
+
+- **Núcleo compartilhado**: HP único para ambos jogadores
+- **Recursos compartilhados**: Pool único de ouro e XP da run
+- **Score compartilhado**: Pontuação única para o time
+- **Bots e progressão meta**: Compartilhados na sessão; meta permanente por dispositivo
+
 ## Controles
 
+### Jogador 1 (P1)
 - **WASD** — mover
 - **Mouse** — mirar
-- **Clique** — atirar
+- **Clique esquerdo** — atirar
 - **1-4** — trocar modo de tiro (quando desbloqueado)
 - **B** — abrir menu de bots de defesa
-- **Space** ou **Q** — ativar habilidade ativa
-- **Shift** ou **E** — usar super (quando carregado)
+- **Q** — ativar habilidade ativa
+- **E** — usar super (quando carregado)
 - **P** — pausar
+
+### Jogador 2 (P2) - Multiplayer Local
+- **IJKL** — mover
+- **TFGH** — mirar (direção do tiro)
+- **Space** — atirar
+
+**Nota**: No modo multiplayer local v1, apenas P1 controla modos de tiro, bots e habilidades especiais. P2 foca em movimento e tiro básico.
 
 ## Features
 
