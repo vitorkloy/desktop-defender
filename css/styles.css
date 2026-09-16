@@ -585,3 +585,93 @@
     color:var(--text-dim);
     margin:-10px 0 8px;
   }
+
+  /* ---------- Quit Confirmation Modal ---------- */
+  .modal-message{
+    font-size:13px;
+    color:var(--text-dim);
+    text-align:center;
+    margin:-8px 0 18px;
+    line-height:1.5;
+  }
+
+  /* ---------- Controls Panel ---------- */
+  .controls-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    max-width:560px;
+    margin:0 auto 20px;
+    max-height:400px;
+    overflow-y:auto;
+    padding-right:8px;
+  }
+  .control-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:rgba(12,21,38,0.6);
+    border:1px solid var(--panel-border);
+    border-radius:4px;
+    padding:10px 14px;
+    gap:16px;
+  }
+  .control-keys{
+    display:flex;
+    gap:6px;
+    align-items:center;
+    font-size:12px;
+    color:var(--text-hi);
+    font-weight:600;
+    letter-spacing:0.5px;
+    min-width:180px;
+  }
+  .control-keys kbd{
+    background:linear-gradient(180deg, #1c2c44, #0c1526);
+    border:1px solid var(--panel-border);
+    border-radius:3px;
+    padding:4px 8px;
+    font-family:'Chakra Petch',sans-serif;
+    font-size:11px;
+    font-weight:600;
+    color:var(--core);
+    box-shadow:0 2px 4px rgba(0,0,0,0.3);
+  }
+  .control-desc{
+    font-size:12px;
+    color:var(--text-dim);
+    text-align:right;
+    flex:1;
+  }
+
+  /* In-game controls hint overlay */
+  #controls-hint-overlay{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    background:rgba(6,10,18,0.95);
+    border:2px solid var(--core);
+    border-radius:8px;
+    padding:20px 24px;
+    box-shadow:0 0 40px rgba(43,255,208,0.3);
+    pointer-events:none;
+    z-index:100;
+  }
+  #controls-hint-overlay .controls-list{
+    max-height:none;
+    padding-right:0;
+    gap:6px;
+  }
+  #controls-hint-overlay .control-item{
+    padding:8px 12px;
+  }
+  #controls-hint-overlay .hint-title{
+    font-family:'Orbitron',sans-serif;
+    font-size:18px;
+    font-weight:700;
+    color:var(--core);
+    text-align:center;
+    margin-bottom:14px;
+    letter-spacing:2px;
+  }

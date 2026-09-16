@@ -189,6 +189,12 @@
       else if(state==="paused"){ resumeGame(); }
     }
     
+    // Toggle in-game controls hint with H or ?
+    if(state==="playing" && (key==="h" || key==="?")){
+      el.controlshint.classList.toggle("hidden");
+      e.preventDefault();
+    }
+    
     // Fire mode switching (1-3)
     if(state==="playing"){
       if(key==="1") fireModeManager.switchMode("standard");
@@ -940,7 +946,12 @@
     wavecomplete: document.getElementById("wavecomplete"),
     botmenu: document.getElementById("bot-menu"),
     hud: document.getElementById("hud"),
+    quitconfirm: document.getElementById("quit-confirm"),
+    controlspanel: document.getElementById("controls-panel"),
+    controlshint: document.getElementById("controls-hint-overlay"),
   };
+  
+  let returnStateAfterQuit = null; // Track where to return if cancel quit
   function showOnly(name){
     for(const k in el) el[k].classList.add("hidden");
     if(name) el[name].classList.remove("hidden");
@@ -1052,6 +1063,8 @@
     if(state!=="playing") return;
     state = "paused";
     showOnly("pause");
+    // Hide controls hint when pausing
+    el.controlshint.classList.add("hidden");
     sfx.ui();
   }
   function resumeGame(){
@@ -1060,6 +1073,37 @@
     showOnly(null);
     el.hud.classList.remove("hidden");
     lastTime = performance.now();
+  }
+  
+  function confirmQuit(fromState){
+    returnStateAfterQuit = fromState;
+    state = "quitconfirm";
+    showOnly("quitconfirm");
+    sfx.ui();
+  }
+  
+  function cancelQuit(){
+    if(returnStateAfterQuit === "paused" || returnStateAfterQuit === "restart"){
+      state = "paused";
+      showOnly("pause");
+    } else {
+      state = "playing";
+      showOnly(null);
+      el.hud.classList.remove("hidden");
+    }
+    returnStateAfterQuit = null;
+    sfx.ui();
+  }
+  
+  function confirmQuitAction(){
+    const action = returnStateAfterQuit;
+    returnStateAfterQuit = null;
+    
+    if(action === "restart"){
+      startGame(false);
+    } else {
+      goMenu();
+    }
   }
 
   let pendingScore = 0, pendingWave = 1;
@@ -1296,15 +1340,25 @@
   document.getElementById("btn-upgrade").onclick = async ()=>{ sfx.ui(); await renderUpgradeHub(); };
   document.getElementById("btn-board").onclick = async ()=>{ sfx.ui(); await renderLeaderboard(); state="leaderboard"; showOnly("leaderboard"); };
   document.getElementById("btn-board-back").onclick = ()=>{ sfx.ui(); goMenu(); };
+  document.getElementById("btn-controls").onclick = ()=>{ sfx.ui(); state="controlspanel"; showOnly("controlspanel"); };
+  document.getElementById("btn-controls-back").onclick = ()=>{ sfx.ui(); goMenu(); };
 
   document.getElementById("btn-ach").onclick = async ()=>{ sfx.ui(); await renderAchievements(); state="achievements"; showOnly("achievements"); };
   document.getElementById("btn-ach-back").onclick = ()=>{ sfx.ui(); goMenu(); };
   
   document.getElementById("btn-upgrade-back").onclick = ()=>{ sfx.ui(); goMenu(); };
+  
+  // Quit confirmation buttons
+  document.getElementById("btn-quit-cancel").onclick = ()=>{ cancelQuit(); };
+  document.getElementById("btn-quit-confirm").onclick = ()=>{ confirmQuitAction(); };
 
   document.getElementById("btn-resume").onclick = ()=>{ sfx.ui(); resumeGame(); };
-  document.getElementById("btn-restart-pause").onclick = ()=>{ sfx.ui(); startGame(false); };
-  document.getElementById("btn-quit-pause").onclick = ()=>{ sfx.ui(); goMenu(); };
+  document.getElementById("btn-restart-pause").onclick = ()=>{ 
+    sfx.ui(); 
+    // Restart also needs confirmation
+    confirmQuit("restart"); 
+  };
+  document.getElementById("btn-quit-pause").onclick = ()=>{ sfx.ui(); confirmQuit("paused"); };
   
   document.getElementById("btn-next-wave").onclick = ()=>{ 
     sfx.ui(); 
