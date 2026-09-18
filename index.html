@@ -2,7 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Desktop Defender</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -127,10 +129,7 @@
         <span><b>P1:</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover</span>
         <span>mouse mirar</span>
         <span>clique atirar</span>
-<<<<<<< HEAD
-=======
         <span><kbd>RMB</kbd> rajada</span>
->>>>>>> origin/main
         <span><kbd>1</kbd>-<kbd>4</kbd> modo tiro</span>
         <span><kbd>B</kbd> colocar bot</span>
         <span><kbd>Q</kbd> ativa</span>
@@ -188,44 +187,103 @@
     <!-- CONTROLS PANEL -->
     <div id="controls-panel" class="overlay hidden">
       <h1 class="title" style="font-size:28px;">CONTROLES</h1>
-      <div class="controls-list">
-        <div class="control-item">
-          <div class="control-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
-          <div class="control-desc">Mover jogador</div>
-        </div>
-        <div class="control-item">
-          <div class="control-keys">Mouse</div>
-          <div class="control-desc">Mirar</div>
-        </div>
-        <div class="control-item">
-          <div class="control-keys">Clique esquerdo</div>
-          <div class="control-desc">Atirar</div>
-        </div>
-        <div class="control-item">
-          <div class="control-keys"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></div>
-          <div class="control-desc">Trocar modo de tiro</div>
-        </div>
-        <div class="control-item">
-          <div class="control-keys"><kbd>B</kbd></div>
-          <div class="control-desc">Colocar bot de defesa</div>
-        </div>
-        <div class="control-item">
-          <div class="control-keys"><kbd>Space</kbd> ou <kbd>Q</kbd></div>
-          <div class="control-desc">Usar habilidade ativa</div>
-        </div>
-        <div class="control-item">
-          <div class="control-keys"><kbd>Shift</kbd> ou <kbd>E</kbd></div>
-          <div class="control-desc">Usar super (quando carregado)</div>
-        </div>
-        <div class="control-item">
-          <div class="control-keys"><kbd>P</kbd> ou <kbd>Esc</kbd></div>
-          <div class="control-desc">Pausar jogo</div>
-        </div>
-        <div class="control-item">
-          <div class="control-keys"><kbd>H</kbd> ou <kbd>?</kbd></div>
-          <div class="control-desc">Mostrar/ocultar controles (durante partida)</div>
+      
+      <div id="desktop-controls">
+        <div style="font-size:13px; font-weight:600; color:var(--core); margin-bottom:10px; letter-spacing:1px;">DESKTOP</div>
+        <div class="controls-list">
+          <div class="control-item">
+            <div class="control-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
+            <div class="control-desc">Mover jogador</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys">Mouse</div>
+            <div class="control-desc">Mirar</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys">Clique esquerdo</div>
+            <div class="control-desc">Atirar</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys">Clique direito</div>
+            <div class="control-desc">Rajada pesada</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></div>
+            <div class="control-desc">Trocar modo de tiro</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys"><kbd>B</kbd></div>
+            <div class="control-desc">Colocar bot de defesa</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys"><kbd>Space</kbd> ou <kbd>Q</kbd></div>
+            <div class="control-desc">Usar habilidade ativa</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys"><kbd>Shift</kbd> ou <kbd>E</kbd></div>
+            <div class="control-desc">Usar super (quando carregado)</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys"><kbd>P</kbd> ou <kbd>Esc</kbd></div>
+            <div class="control-desc">Pausar jogo</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys"><kbd>H</kbd> ou <kbd>?</kbd></div>
+            <div class="control-desc">Mostrar/ocultar controles (durante partida)</div>
+          </div>
         </div>
       </div>
+
+      <div id="mobile-controls" style="margin-top:20px;">
+        <div style="font-size:13px; font-weight:600; color:var(--core); margin-bottom:10px; letter-spacing:1px;">MOBILE</div>
+        <div class="controls-list">
+          <div class="control-item">
+            <div class="control-keys" style="background:none; border:none; padding:0;">Joystick esquerdo</div>
+            <div class="control-desc">Mover jogador</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys" style="background:none; border:none; padding:0;">Joystick direito (landscape)</div>
+            <div class="control-desc">Mirar manualmente</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys" style="background:none; border:none; padding:0;">Auto-mira (portrait)</div>
+            <div class="control-desc">Mira no inimigo mais próximo</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys" style="background:none; border:none; padding:0;">Botão ATIRAR</div>
+            <div class="control-desc">Disparar tiro primário</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys" style="background:none; border:none; padding:0;">Botão RAJADA</div>
+            <div class="control-desc">Rajada pesada</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys" style="background:none; border:none; padding:0;">Botão MODO</div>
+            <div class="control-desc">Trocar modo de tiro</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys" style="background:none; border:none; padding:0;">Botão BOTS</div>
+            <div class="control-desc">Colocar bot de defesa</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys" style="background:none; border:none; padding:0;">Botão ATIVA</div>
+            <div class="control-desc">Usar habilidade ativa</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys" style="background:none; border:none; padding:0;">Botão SUPER</div>
+            <div class="control-desc">Usar super (quando carregado)</div>
+          </div>
+          <div class="control-item">
+            <div class="control-keys" style="background:none; border:none; padding:0;">Botão PAUSE</div>
+            <div class="control-desc">Pausar jogo</div>
+          </div>
+        </div>
+        <div style="font-size:11px; color:var(--text-dim); margin-top:10px; line-height:1.5;">
+          <strong>Nota:</strong> Em modo portrait (vertical), a mira é automática no inimigo mais próximo. 
+          Em landscape (horizontal), use o joystick direito para mirar manualmente.
+        </div>
+      </div>
+
       <div class="btn-row">
         <button class="btn primary" id="btn-controls-back">VOLTAR</button>
       </div>
@@ -331,6 +389,8 @@
 <script src="js/drops.js"></script>
 <script src="js/abilities.js"></script>
 <script src="js/players.js"></script>
+<script src="js/platform.js"></script>
+<script src="js/input-touch.js"></script>
 <script src="js/game.js"></script>
 
 </body>
