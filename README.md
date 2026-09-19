@@ -4,9 +4,12 @@ Jogo de defesa de núcleo no navegador (PT-BR). Proteja o núcleo a qualquer cus
 
 ## Como jogar
 
-- Abra `index.html` no navegador, ou rode um servidor local:
+- **Desktop**: Abra `index.html` no navegador, ou rode um servidor local:
   - `python3 -m http.server 8000`
   - depois acesse `http://127.0.0.1:8000`
+- **Mobile**: Acesse pelo navegador móvel (Chrome Android / Safari iOS)
+  - Recomenda-se modo landscape (horizontal) para melhor experiência
+  - Suporte completo a controles touch (ver seção Controles Mobile)
 
 ## Modos de Jogo
 
@@ -41,6 +44,34 @@ Dois jogadores no mesmo computador defendem UM núcleo compartilhado em modo coo
 - **Space** — atirar
 
 **Nota**: No modo multiplayer local v1, apenas P1 controla modos de tiro, bots e habilidades especiais. P2 foca em movimento e tiro básico.
+
+### Controles Mobile
+
+**Desktop Defender** agora suporta jogo single-player em dispositivos móveis (smartphones e tablets) com controles touch otimizados.
+
+#### Modo Landscape (Horizontal) - Recomendado
+- **Joystick esquerdo** — mover jogador
+- **Joystick direito** — mirar manualmente (dual-stick)
+- **Botão ATIRAR** — disparar tiro primário
+- **Botão RAJADA** — rajada pesada (equivalente ao RMB)
+- **Botão MODO** — ciclar entre modos de tiro desbloqueados
+- **Botão BOTS** — abrir menu de colocação de bots
+- **Botão ATIVA** — usar habilidade ativa (quando disponível)
+- **Botão SUPER** — usar super (quando carregado)
+- **Botão PAUSE** — pausar o jogo
+
+#### Modo Portrait (Vertical)
+- **Joystick esquerdo** — mover jogador
+- **Mira automática** — mira automaticamente no inimigo mais próximo
+- **Mesmos botões** — ATIRAR, RAJADA, MODO, BOTS, ATIVA, SUPER, PAUSE
+
+**Notas Mobile:**
+- Modo multiplayer local não está disponível em dispositivos touch
+- Recomenda-se landscape para controle dual-stick completo
+- Portrait usa auto-mira para simplificar controles
+- Todos os botões têm tamanho mínimo de 44px para fácil toque
+- Suporte a safe-area para dispositivos com notch
+- Áudio desbloqueado automaticamente no primeiro toque
 
 ## Features
 

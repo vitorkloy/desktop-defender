@@ -995,3 +995,375 @@
     margin-bottom:14px;
     letter-spacing:2px;
   }
+
+  /* ========== TOUCH CONTROLS ========== */
+  .touch-ui {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  .touch-joystick {
+    position: absolute;
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  .left-joystick {
+    bottom: 20px;
+    left: 20px;
+  }
+
+  .right-joystick {
+    bottom: 20px;
+    right: 180px;
+  }
+
+  .joystick-base {
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(43,255,208,0.1), rgba(43,255,208,0.05));
+    border: 2px solid rgba(43,255,208,0.3);
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4), inset 0 0 20px rgba(43,255,208,0.1);
+    transition: border-color 0.2s;
+  }
+
+  .touch-joystick.active .joystick-base {
+    border-color: rgba(43,255,208,0.6);
+  }
+
+  .joystick-stick {
+    width: 45px;
+    height: 45px;
+    background: radial-gradient(circle, var(--core), rgba(43,255,208,0.7));
+    border: 2px solid var(--core);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 8px rgba(43,255,208,0.5);
+    transition: box-shadow 0.2s;
+  }
+
+  .touch-joystick.active .joystick-stick {
+    box-shadow: 0 4px 16px rgba(43,255,208,0.8);
+  }
+
+  .touch-buttons {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    pointer-events: auto;
+  }
+
+  .touch-btn {
+    min-width: 70px;
+    min-height: 44px;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, rgba(28,44,68,0.9), rgba(12,21,38,0.9));
+    border: 2px solid var(--panel-border);
+    border-radius: 6px;
+    color: var(--text-hi);
+    font-family: 'Chakra Petch', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    touch-action: none;
+    transition: all 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+
+  .touch-btn:active,
+  .touch-btn.active {
+    transform: scale(0.95);
+    border-color: var(--core);
+    box-shadow: 0 0 12px rgba(43,255,208,0.5), inset 0 0 12px rgba(43,255,208,0.2);
+  }
+
+  .touch-btn.primary-fire {
+    background: linear-gradient(180deg, rgba(87,217,255,0.3), rgba(87,217,255,0.15));
+    border-color: rgba(87,217,255,0.5);
+  }
+
+  .touch-btn.primary-fire:active,
+  .touch-btn.primary-fire.active {
+    border-color: var(--player);
+    box-shadow: 0 0 12px rgba(87,217,255,0.6), inset 0 0 12px rgba(87,217,255,0.2);
+  }
+
+  .touch-btn.secondary-fire {
+    background: linear-gradient(180deg, rgba(255,157,71,0.3), rgba(255,157,71,0.15));
+    border-color: rgba(255,157,71,0.5);
+  }
+
+  .touch-btn.secondary-fire:active,
+  .touch-btn.secondary-fire.active {
+    border-color: #ff9d47;
+    box-shadow: 0 0 12px rgba(255,157,71,0.6), inset 0 0 12px rgba(255,157,71,0.2);
+  }
+
+  .touch-btn.ability-super {
+    background: linear-gradient(180deg, rgba(255,179,71,0.3), rgba(255,179,71,0.15));
+    border-color: rgba(255,179,71,0.5);
+  }
+
+  .touch-btn.ability-super:active,
+  .touch-btn.ability-super.active {
+    border-color: var(--amber);
+    box-shadow: 0 0 12px rgba(255,179,71,0.6), inset 0 0 12px rgba(255,179,71,0.2);
+  }
+
+  .touch-btn.pause {
+    background: linear-gradient(180deg, rgba(255,43,77,0.3), rgba(255,43,77,0.15));
+    border-color: rgba(255,43,77,0.5);
+  }
+
+  .touch-btn.pause:active,
+  .touch-btn.pause.active {
+    border-color: var(--danger);
+    box-shadow: 0 0 12px rgba(255,43,77,0.6), inset 0 0 12px rgba(255,43,77,0.2);
+  }
+
+  /* Orientation warning banner */
+  #orientation-banner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255,43,77,0.95);
+    color: white;
+    padding: 12px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    z-index: 200;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+
+  #orientation-banner.hidden {
+    display: none;
+  }
+
+  /* ========== RESPONSIVE / MOBILE ========== */
+  
+  @media (max-width: 768px) {
+    #app {
+      width: 100vw;
+      height: 100dvh;
+      aspect-ratio: auto;
+    }
+
+    #stage {
+      border-radius: 0;
+      border: none;
+    }
+
+    .overlay {
+      padding: 20px;
+    }
+
+    .title {
+      font-size: 32px !important;
+    }
+
+    .subtitle {
+      font-size: 12px;
+    }
+
+    .btn {
+      min-width: 100%;
+      padding: 14px 20px;
+      font-size: 13px;
+    }
+
+    .btn-row {
+      flex-direction: column;
+      width: 100%;
+      gap: 10px;
+    }
+
+    .controls-hint {
+      font-size: 9px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .hud-top {
+      padding: 10px 12px;
+    }
+
+    .hud-label {
+      font-size: 9px;
+    }
+
+    .hud-value {
+      font-size: 18px;
+    }
+
+    #economy-hud {
+      top: 10px;
+      right: 12px;
+    }
+
+    #firemodes-hud {
+      bottom: 140px;
+      left: 12px;
+    }
+
+    .firemode-badge {
+      padding: 5px 8px;
+    }
+
+    #superbar-wrap,
+    #secondarybar-wrap {
+      left: 12px;
+      right: 12px;
+    }
+
+    #corebar-wrap {
+      left: 12px;
+      right: 12px;
+    }
+
+    .ach-grid,
+    .upgrade-grid,
+    .bot-grid {
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+
+    .controls-list {
+      max-height: 50vh;
+    }
+
+    #controls-hint-overlay {
+      padding: 16px 20px;
+    }
+
+    #controls-hint-overlay .hint-title {
+      font-size: 16px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .title {
+      font-size: 24px !important;
+    }
+
+    .subtitle {
+      font-size: 10px;
+    }
+
+    .btn {
+      padding: 12px 16px;
+      font-size: 12px;
+    }
+
+    .hud-value {
+      font-size: 16px;
+    }
+
+    .touch-buttons {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .touch-btn {
+      min-width: 60px;
+      min-height: 44px;
+      padding: 6px 10px;
+      font-size: 10px;
+    }
+
+    .joystick-base {
+      width: 90px;
+      height: 90px;
+    }
+
+    .joystick-stick {
+      width: 40px;
+      height: 40px;
+    }
+
+    .left-joystick {
+      bottom: 15px;
+      left: 15px;
+    }
+
+    .right-joystick {
+      bottom: 15px;
+      right: 140px;
+    }
+
+    .touch-buttons {
+      bottom: 15px;
+      right: 15px;
+    }
+
+    .ach-grid,
+    .upgrade-grid,
+    .bot-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (orientation: portrait) and (max-width: 768px) {
+    .right-joystick {
+      display: none;
+    }
+
+    .touch-buttons {
+      right: 15px;
+    }
+
+    #firemodes-hud {
+      bottom: 160px;
+    }
+  }
+
+  /* Safe area insets for notched devices */
+  @supports (padding: env(safe-area-inset-top)) {
+    #app {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+
+    .overlay {
+      padding-top: calc(20px + env(safe-area-inset-top));
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+
+    .touch-ui .left-joystick {
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      left: calc(20px + env(safe-area-inset-left));
+    }
+
+    .touch-ui .right-joystick {
+      bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+
+    .touch-ui .touch-buttons {
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      right: calc(20px + env(safe-area-inset-right));
+    }
+  }
+
+  /* Prevent zoom on double-tap */
+  button, input, select, textarea {
+    touch-action: manipulation;
+  }
+
+  /* Hide desktop-only multiplayer on touch */
+  .touch-device #btn-play-2p {
+    display: none !important;
+  }

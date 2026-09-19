@@ -45,6 +45,8 @@
   const botManager = new window.BotManager();
   const playersManager = new window.PlayersManager();
   const inputManager = new window.InputManager();
+  const platformDetector = new window.PlatformDetector();
+  const touchInputManager = new window.TouchInputManager();
   
   // Make managers accessible globally for meta UI
   window.metaManager = metaManager;
@@ -258,6 +260,16 @@
       botManager.updateGhostPosition(p.x, p.y);
     }
   });
+  
+  canvas.addEventListener("touchmove",(e)=>{
+    if(botManager.placementMode && e.touches.length > 0){
+      e.preventDefault();
+      const touch = e.touches[0];
+      const p = toLogical(touch.clientX, touch.clientY);
+      inputManager.setMousePosition(p.x, p.y);
+      botManager.updateGhostPosition(p.x, p.y);
+    }
+  }, { passive: false });
   canvas.addEventListener("mousedown",(e)=>{ 
     if(e.button === 0){
       inputManager.setMouseDown(true);
@@ -289,6 +301,25 @@
       }
     }
   });
+  
+  canvas.addEventListener("touchstart",(e)=>{
+    if(botManager.placementMode && e.touches.length > 0){
+      e.preventDefault();
+      const touch = e.touches[0];
+      const p = toLogical(touch.clientX, touch.clientY);
+      const totals = economyManager.getRunTotals();
+      const result = botManager.placeBot(p.x, p.y, core.x, core.y, core.radius, {w:W, h:H}, totals.gold);
+      
+      if(result.success){
+        economyManager.runGold -= result.cost;
+        sfx.wave();
+        floatText(p.x, p.y - 20, "-" + result.cost + " 💰", "#ffd23f");
+      } else {
+        floatText(p.x, p.y - 20, result.reason, "#ff4d6d");
+        sfx.ui();
+      }
+    }
+  }, { passive: false });
   window.addEventListener("mouseup",(e)=>{ 
     if(e.button === 0){
       inputManager.setMouseDown(false);
@@ -429,7 +460,11 @@
       // Get movement based on player controls
       let movement;
       if(player.controls === "player1"){
-        movement = inputManager.getP1Movement();
+        if(touchInputManager.enabled){
+          movement = touchInputManager.getMovement();
+        } else {
+          movement = inputManager.getP1Movement();
+        }
       } else {
         movement = inputManager.getP2Movement();
       }
@@ -446,9 +481,25 @@
       
       // Update aim based on player controls
       if(player.controls === "player1"){
-        const mouse = inputManager.getMousePosition();
-        player.aimX = mouse.x;
-        player.aimY = mouse.y;
+        if(touchInputManager.enabled){
+          // Find nearest enemy for auto-aim
+          let nearestEnemy = null;
+          let nearestDist = Infinity;
+          for(const e of enemies){
+            const dist = Math.hypot(e.x - player.x, e.y - player.y);
+            if(dist < nearestDist){
+              nearestDist = dist;
+              nearestEnemy = e;
+            }
+          }
+          const aimTarget = touchInputManager.getAimTarget(player.x, player.y, nearestEnemy);
+          player.aimX = aimTarget.x;
+          player.aimY = aimTarget.y;
+        } else {
+          const mouse = inputManager.getMousePosition();
+          player.aimX = mouse.x;
+          player.aimY = mouse.y;
+        }
       } else {
         const aim = inputManager.getP2AimDirection(player.x, player.y);
         player.aimX = aim.x;
@@ -464,7 +515,12 @@
       player.fireCooldown = Math.max(0, player.fireCooldown - dt);
       
       // Check if player wants to fire
-      const wantsFire = player.controls === "player1" ? inputManager.isP1Fire() : inputManager.isP2Fire();
+      let wantsFire;
+      if(player.controls === "player1"){
+        wantsFire = touchInputManager.enabled ? touchInputManager.isFiring() : inputManager.isP1Fire();
+      } else {
+        wantsFire = inputManager.isP2Fire();
+      }
       
       // Check burst state
       const fireMode = fireModeManager.getCurrentMode();
@@ -1022,6 +1078,75 @@
     if(state==="playing"){
       elapsed += dt;
       secondaryFire.cooldown = Math.max(0, secondaryFire.cooldown - dt);
+      
+      // Handle touch button inputs
+      if(touchInputManager.enabled){
+        // Mode cycle button
+        if(touchInputManager.wasButtonJustPressed('mode')){
+          const currentMode = fireModeManager.getCurrentMode();
+          const modes = ['standard', 'spread', 'rail', 'burst'];
+          const unlockedModes = modes.filter(m => fireModeManager.isUnlocked(m));
+          if(unlockedModes.length > 1){
+            const currentIndex = unlockedModes.indexOf(currentMode.id);
+            const nextIndex = (currentIndex + 1) % unlockedModes.length;
+            fireModeManager.switchMode(unlockedModes[nextIndex]);
+            sfx.ui();
+          }
+        }
+        
+        // Bot placement button
+        if(touchInputManager.wasButtonJustPressed('bots')){
+          state = "botmenu";
+          showOnly("botmenu");
+          renderBotMenu();
+          touchInputManager.hide();
+          sfx.ui();
+        }
+        
+        // Active ability button
+        if(touchInputManager.wasButtonJustPressed('active')){
+          const activated = effectsManager.useActive();
+          if(activated === "emp_blast"){
+            const p1 = playersManager.getPlayer(1);
+            if(p1){
+              abilitiesHandler.triggerEMP(p1.x, p1.y);
+              sfx.wave();
+            }
+          }
+        }
+        
+        // Super ability button
+        if(touchInputManager.wasButtonJustPressed('super')){
+          const activated = effectsManager.useSuper();
+          if(activated === "devastation"){
+            const result = abilitiesHandler.triggerDevastating(enemies, particles, score, combo);
+            score += result.totalScore;
+            sessionKills += result.kills;
+            effectsManager.addSuperCharge(10);
+            floatText(core.x, core.y - 50, "DEVASTAÇÃO!", "#ff9d47");
+            shake = Math.max(shake, 15);
+            sfx.gameover();
+            checkLiveAchievements();
+          }
+        }
+        
+        // Pause button
+        if(touchInputManager.wasButtonJustPressed('pause')){
+          pauseGame();
+          touchInputManager.hide();
+        }
+        
+        // Secondary fire button
+        if(touchInputManager.isSecondaryFiring() && secondaryFire.cooldown <= 0){
+          const p1 = playersManager.getPlayer(1);
+          if(p1){
+            fireSecondaryBurst(p1);
+          }
+        }
+        
+        touchInputManager.clearJustPressed();
+      }
+      
       updatePlayers(dt);
       updateBullets(dt);
       updateEnemies(dt);
@@ -1073,6 +1198,14 @@
     await initAchievements();
     document.getElementById("menu-stats").innerHTML =
       `<span>MAIOR ONDA: <b>${statsCache.bestWave}</b></span><span>ABATES TOTAIS: <b>${statsCache.totalKills}</b></span><span>PARTIDAS: <b>${statsCache.gamesPlayed}</b></span>`;
+    
+    // Hide multiplayer button on touch devices
+    const multiplayerBtn = document.getElementById("btn-play-2p");
+    if(platformDetector.shouldDisableMultiplayer()){
+      multiplayerBtn.style.display = "none";
+    } else {
+      multiplayerBtn.style.display = "";
+    }
     
     // Check for saved run
     const hasSave = await runSaveManager.checkHasSave();
@@ -1173,6 +1306,13 @@
     state = "playing";
     showOnly(null);
     el.hud.classList.remove("hidden");
+    
+    // Initialize touch controls if on touch device
+    if(platformDetector.shouldUseTouchControls()){
+      touchInputManager.init(platformDetector);
+      touchInputManager.show();
+    }
+    
     updateHUD();
     updateCoreBar();
   }
@@ -1181,6 +1321,9 @@
     if(state!=="playing") return;
     state = "paused";
     showOnly("pause");
+    if(touchInputManager.enabled){
+      touchInputManager.hide();
+    }
     sfx.ui();
   }
   function resumeGame(){
@@ -1188,6 +1331,9 @@
     state = "playing";
     showOnly(null);
     el.hud.classList.remove("hidden");
+    if(touchInputManager.enabled){
+      touchInputManager.show();
+    }
     lastTime = performance.now();
   }
 
@@ -1447,6 +1593,9 @@
     state = "playing";
     showOnly(null);
     el.hud.classList.remove("hidden");
+    if(touchInputManager.enabled){
+      touchInputManager.show();
+    }
     announceWave();
   };
   document.getElementById("btn-save-quit").onclick = ()=>{ saveAndQuit(); };
@@ -1457,6 +1606,9 @@
     state = "playing";
     showOnly(null);
     el.hud.classList.remove("hidden");
+    if(touchInputManager.enabled){
+      touchInputManager.show();
+    }
   };
 
   document.getElementById("btn-retry").onclick = ()=>{ sfx.ui(); startGame(false, playersManager.mode); };
