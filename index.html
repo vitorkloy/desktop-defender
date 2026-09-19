@@ -13,8 +13,24 @@
 </head>
 <body>
 
-<div id="app">
+  <div id="app">
   <div id="stage">
+    <!-- Landscape orientation warning for mobile -->
+    <div id="landscape-warning" class="hidden">
+      <div class="landscape-warning-content">
+        <div class="rotate-icon">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="15" y="25" width="50" height="30" rx="3" stroke="currentColor" stroke-width="3" fill="none"/>
+            <circle cx="60" cy="40" r="3" fill="currentColor"/>
+            <path d="M 50 15 Q 65 15 65 30 L 65 50 Q 65 65 50 65" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <path d="M 47 62 L 50 65 L 53 62" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="landscape-warning-title">Vire o celular para jogar</div>
+        <div class="landscape-warning-subtitle">Este jogo requer orientação horizontal</div>
+      </div>
+    </div>
+
     <canvas id="game"></canvas>
 
     <div id="hud" class="hidden">

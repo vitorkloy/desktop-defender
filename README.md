@@ -8,8 +8,9 @@ Jogo de defesa de núcleo no navegador (PT-BR). Proteja o núcleo a qualquer cus
   - `python3 -m http.server 8000`
   - depois acesse `http://127.0.0.1:8000`
 - **Mobile**: Acesse pelo navegador móvel (Chrome Android / Safari iOS)
-  - Recomenda-se modo landscape (horizontal) para melhor experiência
-  - Suporte completo a controles touch (ver seção Controles Mobile)
+  - **Orientação obrigatória**: Landscape (horizontal)
+  - O jogo bloqueará automaticamente em modo portrait com uma mensagem clara
+  - Suporte completo a controles touch dual-stick em landscape
 
 ## Modos de Jogo
 
@@ -47,9 +48,9 @@ Dois jogadores no mesmo computador defendem UM núcleo compartilhado em modo coo
 
 ### Controles Mobile
 
-**Desktop Defender** agora suporta jogo single-player em dispositivos móveis (smartphones e tablets) com controles touch otimizados.
+**Desktop Defender** suporta jogo single-player em dispositivos móveis com controles touch otimizados. **O jogo requer orientação landscape (horizontal)** e bloqueará automaticamente gameplay em portrait.
 
-#### Modo Landscape (Horizontal) - Recomendado
+#### Modo Landscape (Horizontal) - Obrigatório
 - **Joystick esquerdo** — mover jogador
 - **Joystick direito** — mirar manualmente (dual-stick)
 - **Botão ATIRAR** — disparar tiro primário
@@ -61,14 +62,13 @@ Dois jogadores no mesmo computador defendem UM núcleo compartilhado em modo coo
 - **Botão PAUSE** — pausar o jogo
 
 #### Modo Portrait (Vertical)
-- **Joystick esquerdo** — mover jogador
-- **Mira automática** — mira automaticamente no inimigo mais próximo
-- **Mesmos botões** — ATIRAR, RAJADA, MODO, BOTS, ATIVA, SUPER, PAUSE
+- **Bloqueado**: O jogo exibe um overlay instruindo o jogador a girar o dispositivo
+- A tentativa de lock da orientação via API é feita automaticamente após o primeiro gesto (funciona em alguns navegadores Android, geralmente falha no iOS)
+- Gameplay pausado até que o dispositivo seja girado para landscape
 
 **Notas Mobile:**
 - Modo multiplayer local não está disponível em dispositivos touch
-- Recomenda-se landscape para controle dual-stick completo
-- Portrait usa auto-mira para simplificar controles
+- Landscape obrigatório para controle dual-stick completo
 - Todos os botões têm tamanho mínimo de 44px para fácil toque
 - Suporte a safe-area para dispositivos com notch
 - Áudio desbloqueado automaticamente no primeiro toque

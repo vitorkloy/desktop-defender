@@ -1075,7 +1075,10 @@
     const dt = Math.min(0.033, (now-lastTime)/1000);
     lastTime = now;
 
-    if(state==="playing"){
+    // Block gameplay updates if mobile is in portrait mode
+    const isBlocked = platformDetector.isGameplayBlocked();
+    
+    if(state==="playing" && !isBlocked){
       elapsed += dt;
       secondaryFire.cooldown = Math.max(0, secondaryFire.cooldown - dt);
       
