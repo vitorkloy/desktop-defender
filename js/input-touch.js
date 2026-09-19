@@ -22,10 +22,22 @@
 
       this.enabled = true;
       this.aimMode = platform.isPortrait() ? 'auto-aim' : 'dual-stick';
+      this.platform = platform;
       
       this.createTouchUI();
       this.initTouchListeners();
       this.unlockAudioOnFirstTouch();
+      this.setupOrientationListener();
+    }
+    
+    setupOrientationListener() {
+      window.addEventListener('orientationchange', (e) => {
+        const newMode = e.detail.orientation === 'portrait' ? 'auto-aim' : 'dual-stick';
+        if (newMode !== this.aimMode) {
+          this.aimMode = newMode;
+          this.createTouchUI();
+        }
+      });
     }
 
     createTouchUI() {
@@ -38,43 +50,80 @@
       touchUI.id = 'touch-ui';
       touchUI.className = 'touch-ui';
       touchUI.innerHTML = `
-        <div class="touch-joystick left-joystick" id="move-joystick">
+        <!-- Joystick de movimento compacto -->
+        <div class="touch-joystick move-stick" id="move-joystick">
           <div class="joystick-base">
             <div class="joystick-stick"></div>
           </div>
         </div>
         
+        <!-- Joystick de mira em landscape -->
         ${this.aimMode === 'dual-stick' ? `
-        <div class="touch-joystick right-joystick" id="aim-joystick">
+        <div class="touch-joystick aim-stick" id="aim-joystick">
           <div class="joystick-base">
             <div class="joystick-stick"></div>
           </div>
         </div>
         ` : ''}
         
-        <div class="touch-buttons">
-          <button class="touch-btn primary-fire" id="btn-fire" data-action="fire">
-            <span>ATIRAR</span>
+        <!-- Área de disparo (direita) -->
+        <div class="fire-zone" id="fire-zone">
+          <button class="touch-btn fire-main" id="btn-fire" data-action="fire">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="8"/>
+            </svg>
           </button>
-          <button class="touch-btn secondary-fire" id="btn-secondary" data-action="secondary">
-            <span>RAJADA</span>
-          </button>
-          <button class="touch-btn mode-cycle" id="btn-mode" data-action="mode">
-            <span>MODO</span>
-          </button>
-          <button class="touch-btn bot-place" id="btn-bots" data-action="bots">
-            <span>BOTS</span>
-          </button>
-          <button class="touch-btn ability-active" id="btn-active" data-action="active">
-            <span>ATIVA</span>
-          </button>
-          <button class="touch-btn ability-super" id="btn-super" data-action="super">
-            <span>SUPER</span>
-          </button>
-          <button class="touch-btn pause" id="btn-pause-touch" data-action="pause">
-            <span>PAUSE</span>
+          <button class="touch-btn fire-alt" id="btn-secondary" data-action="secondary">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15 8L22 9L17 14L18 21L12 18L6 21L7 14L2 9L9 8L12 2Z"/>
+            </svg>
           </button>
         </div>
+        
+        <!-- Barra de ações rápidas (topo direito) -->
+        <div class="quick-actions">
+          <button class="action-btn action-mode" id="btn-mode" data-action="mode" title="Modo de Tiro">
+            <span class="action-icon">1</span>
+          </button>
+          <button class="action-btn action-bots" id="btn-bots" data-action="bots" title="Bots">
+            <span class="action-icon">🤖</span>
+          </button>
+        </div>
+        
+        <!-- Habilidades (lado direito) -->
+        <div class="abilities-bar">
+          <button class="ability-btn ability-active" id="btn-active" data-action="active" title="Ativa (Q)">
+            <span class="ability-key">Q</span>
+            <div class="ability-cooldown"></div>
+          </button>
+          <button class="ability-btn ability-super" id="btn-super" data-action="super" title="Super (E)">
+            <span class="ability-key">E</span>
+            <div class="ability-cooldown"></div>
+          </button>
+        </div>
+        
+        <!-- Pause (topo esquerdo) -->
+        <button class="menu-btn" id="btn-pause-touch" data-action="pause">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16"/>
+            <rect x="14" y="4" width="4" height="16"/>
+          </svg>
+        </button>
+        
+        <!-- Indicador de auto-aim (apenas portrait) -->
+        ${this.aimMode === 'auto-aim' ? `
+        <div class="auto-aim-indicator">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+            <circle cx="12" cy="12" r="2"/>
+            <line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" stroke-width="2"/>
+            <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="2"/>
+            <line x1="2" y1="12" x2="6" y2="12" stroke="currentColor" stroke-width="2"/>
+            <line x1="18" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <span>AUTO</span>
+        </div>
+        ` : ''}
       `;
 
       const stage = document.getElementById('stage');
