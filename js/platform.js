@@ -8,8 +8,11 @@
       this.isIOS = this.detectIOS();
       this.isAndroid = this.detectAndroid();
       this.orientation = this.getOrientation();
+      this.orientationLockAttempted = false;
+      this.landscapeWarning = null;
       
       this.initListeners();
+      this.initLandscapeEnforcement();
     }
 
     detectTouch() {
@@ -41,10 +44,69 @@
     initListeners() {
       window.addEventListener('resize', () => {
         this.orientation = this.getOrientation();
+        this.updateLandscapeWarning();
         window.dispatchEvent(new CustomEvent('orientationchange', { 
           detail: { orientation: this.orientation } 
         }));
       });
+
+      window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+          this.orientation = this.getOrientation();
+          this.updateLandscapeWarning();
+        }, 100);
+      });
+    }
+
+    initLandscapeEnforcement() {
+      if (!this.shouldUseTouchControls()) {
+        return;
+      }
+
+      this.landscapeWarning = document.getElementById('landscape-warning');
+      if (!this.landscapeWarning) {
+        return;
+      }
+
+      this.updateLandscapeWarning();
+
+      document.addEventListener('click', () => {
+        this.tryLockOrientation();
+      }, { once: true });
+
+      document.addEventListener('touchstart', () => {
+        this.tryLockOrientation();
+      }, { once: true });
+    }
+
+    async tryLockOrientation() {
+      if (this.orientationLockAttempted || !this.shouldUseTouchControls()) {
+        return;
+      }
+
+      this.orientationLockAttempted = true;
+
+      if (!screen.orientation || !screen.orientation.lock) {
+        return;
+      }
+
+      try {
+        await screen.orientation.lock('landscape');
+      } catch (err) {
+        console.log('Screen orientation lock not supported or denied:', err.message);
+      }
+    }
+
+    updateLandscapeWarning() {
+      if (!this.landscapeWarning || !this.shouldUseTouchControls()) {
+        return;
+      }
+
+      if (this.isPortrait()) {
+        this.landscapeWarning.classList.remove('hidden');
+      } else {
+        this.landscapeWarning.classList.add('hidden');
+      }
     }
 
     shouldUseTouchControls() {
@@ -61,6 +123,10 @@
 
     isLandscape() {
       return this.orientation === 'landscape';
+    }
+
+    isGameplayBlocked() {
+      return this.shouldUseTouchControls() && this.isPortrait();
     }
   }
 
